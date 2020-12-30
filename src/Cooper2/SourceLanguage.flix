@@ -17,9 +17,10 @@
 
 namespace Cooper2/SourceLanguage {
 
-    type alias TableName = String       /// t
-    type alias FieldName = String       /// l
-    type alias Variable = String        /// x
+    use Cooper2/Common.{TableName, FieldName, Variable};
+
+
+    /// Fig 1, page 5
 
     pub enum Term {
         case For(Variable, Term, Term)

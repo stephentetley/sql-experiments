@@ -22,9 +22,9 @@ namespace Cooper2/SQLTarget {
 
     use class Text/PrettyPrint.Pretty;
 
-    type alias TableName = String       /// t
-    type alias FieldName = String       /// l
-    type alias Variable = String        /// x
+    use Cooper2/Common.{TableName, FieldName, Variable};
+
+    /// Fig 5, page 10
 
     pub enum Query {
         case UnionAll(Query, Query)

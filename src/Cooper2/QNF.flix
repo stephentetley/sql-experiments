@@ -17,9 +17,9 @@
 
 namespace Cooper2/QNF {
 
-    type alias TableName = String       /// t
-    type alias FieldName = String       /// l
-    type alias Variable = String        /// x
+    use Cooper2/Common.{TableName, FieldName, Variable};
+
+    /// Fig 4, page 10
 
     pub enum QueryNormalForm {
         case BagUnion(QueryNormalForm, QueryNormalForm)
