@@ -1,12 +1,12 @@
-/// Cooper.flix
+/// test-cooper1.flix
 
-use Cooper/SqlFragment.Query.{Select};
-use Cooper/SqlFragment.SelectFromWhere.{SelectFromWhere};
-use Cooper/SqlFragment.TableAlias.{TableAlias};
-use Cooper/SqlFragment.Selector.{As};
-use Cooper/SqlFragment.Expr.{FieldProjection, Constant};
-use Cooper/SqlFragment.Constant.{Int, String};
-use Cooper/SqlFragment.{ppQuery};
+use Cooper1/SqlFragment.Query.{Select};
+use Cooper1/SqlFragment.SelectFromWhere.{SelectFromWhere};
+use Cooper1/SqlFragment.TableAlias.{TableAlias};
+use Cooper1/SqlFragment.Selector.{As};
+use Cooper1/SqlFragment.Expr.{FieldProjection, Constant};
+use Cooper1/SqlFragment.Constant.{Int, String};
+use Cooper1/SqlFragment.{ppQuery};
 
 def main(): Unit & Impure = 
     let q1 = Select(

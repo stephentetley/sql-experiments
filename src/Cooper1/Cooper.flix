@@ -1,6 +1,21 @@
-/// Cooper.flix
+/*
+ * Copyright 2020 Stephen Tetley
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
-namespace Cooper/NormalForm {
+
+namespace Cooper1/NormalForm {
 
     type alias TableName = String       /// t
     type alias FieldName = String       /// l
@@ -50,7 +65,7 @@ namespace Cooper/NormalForm {
 }
 
 
-namespace Cooper/SqlFragment {
+namespace Cooper1/SqlFragment {
 
     use Text/PrettyPrint.Doc;
     use Text/PrettyPrint.{<<>>, <>, <!>, <&>, hang, group, foldDocs, 
@@ -146,36 +161,36 @@ namespace Cooper/SqlFragment {
 
 }
 
-namespace Cooper/SqlTranslation {
+namespace Cooper1/SqlTranslation {
 
-    use Cooper/NormalForm.{QueryNormalForm => NFQueryNormalForm};
-    use Cooper/NormalForm.QueryNormalForm.{BagUnion => NFBagUnion, 
+    use Cooper1/NormalForm.{QueryNormalForm => NFQueryNormalForm};
+    use Cooper1/NormalForm.QueryNormalForm.{BagUnion => NFBagUnion, 
         BagEmpty => NFBagEmpty, ComprehensionNormalForm => NFComprehensionNormalForm};
-    use Cooper/NormalForm.{ComprehensionNormalForm => NFComprehensionNormalForm};
-    use Cooper/NormalForm.ComprehensionNormalForm.{For => NFFor, ComprehensionBody => NFComprehensionBody};
-    use Cooper/NormalForm.{ComprehensionBody => NFComprehensionBody};
-    use Cooper/NormalForm.ComprehensionBody.{IfThen => NFIfThen, Bag => NFBag, Table => NFTable};
-    use Cooper/NormalForm.{RowForm => NFRowForm};
-    use Cooper/NormalForm.RowForm.{Record => NFRecord, Var => NFVar};
-    use Cooper/NormalForm.{RecordField => NFRecordField};
-    use Cooper/NormalForm.RecordField.{RecordField => NFRecordField};
-    use Cooper/NormalForm.{BasicExpr => NFBasicExpr};
-    use Cooper/NormalForm.BasicExpr.{IfThenElse => NFIfThenElse, Empty => NFEmpty, 
+    use Cooper1/NormalForm.{ComprehensionNormalForm => NFComprehensionNormalForm};
+    use Cooper1/NormalForm.ComprehensionNormalForm.{For => NFFor, ComprehensionBody => NFComprehensionBody};
+    use Cooper1/NormalForm.{ComprehensionBody => NFComprehensionBody};
+    use Cooper1/NormalForm.ComprehensionBody.{IfThen => NFIfThen, Bag => NFBag, Table => NFTable};
+    use Cooper1/NormalForm.{RowForm => NFRowForm};
+    use Cooper1/NormalForm.RowForm.{Record => NFRecord, Var => NFVar};
+    use Cooper1/NormalForm.{RecordField => NFRecordField};
+    use Cooper1/NormalForm.RecordField.{RecordField => NFRecordField};
+    use Cooper1/NormalForm.{BasicExpr => NFBasicExpr};
+    use Cooper1/NormalForm.BasicExpr.{IfThenElse => NFIfThenElse, Empty => NFEmpty, 
         Prim => NFPrim, FieldProjection => NFFieldProjection, Constant => NFConstant};
-    use Cooper/NormalForm.{Constant => NFConstant};
-    use Cooper/NormalForm.Constant.{Bool => NFBool, String => NFString, Int => NFInt};
+    use Cooper1/NormalForm.{Constant => NFConstant};
+    use Cooper1/NormalForm.Constant.{Bool => NFBool, String => NFString, Int => NFInt};
 
-    use Cooper/SqlFragment.Query;
-    use Cooper/SqlFragment.Query.{UnionAll, Select};
-    use Cooper/SqlFragment.SelectFromWhere.{SelectFromWhere};
-    use Cooper/SqlFragment.TableAlias;
-    use Cooper/SqlFragment.TableAlias.{TableAlias};
-    use Cooper/SqlFragment.Selector;
-    use Cooper/SqlFragment.Selector.{As, VarAll};
-    use Cooper/SqlFragment.Expr;
-    use Cooper/SqlFragment.Expr.{CaseWhen, Constant, FieldProjection, And, Not, Exists, Prim};
-    use Cooper/SqlFragment.Constant;
-    use Cooper/SqlFragment.Constant.{Bool, String, Int, Null};
+    use Cooper1/SqlFragment.Query;
+    use Cooper1/SqlFragment.Query.{UnionAll, Select};
+    use Cooper1/SqlFragment.SelectFromWhere.{SelectFromWhere};
+    use Cooper1/SqlFragment.TableAlias;
+    use Cooper1/SqlFragment.TableAlias.{TableAlias};
+    use Cooper1/SqlFragment.Selector;
+    use Cooper1/SqlFragment.Selector.{As, VarAll};
+    use Cooper1/SqlFragment.Expr;
+    use Cooper1/SqlFragment.Expr.{CaseWhen, Constant, FieldProjection, And, Not, Exists, Prim};
+    use Cooper1/SqlFragment.Constant;
+    use Cooper1/SqlFragment.Constant.{Bool, String, Int, Null};
     
     type alias TableName = String       /// t
     type alias FieldName = String       /// l
