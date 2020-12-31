@@ -19,21 +19,10 @@ namespace Cooper2/Monad {
 
     use Cooper2/Common.{Variable};
     use Cooper2/SourceLanguage.{Term};
-    use Cooper2/SourceLanguage.Term.{For, IfThenElse, Table, 
-        BagSingleton, BagEmpty, BagUnion, Record, 
-        FieldProjection, Apply, Lambda, Variable, Constant,
-        Prim, Empty, Query};
 
     type alias Substs = Map[Variable, Term]
 
     pub opaque type Mon[a] = Substs -> Result[a, String]
 
-    pub def freevars(t: Term): Set[Variable] = freevarsHelper(t, s -> s)
 
-    def freevarsHelper(t: Term, k: Set[Variable] -> Set[Variable]): Set[Variable] = match t {
-        case Variable(x)    => k(Set.singleton(x))
-        case Constant(_)    => k(Set.empty())
-        case _ => k(Set.empty())
-    }
- 
 }

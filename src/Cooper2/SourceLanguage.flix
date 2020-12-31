@@ -27,7 +27,7 @@ namespace Cooper2/SourceLanguage {
         case IfThenElse(Term, Term, Term)
         case Table(TableName, List[FieldName])
         case BagSingleton(Term)
-        case BagEmpty(List[FieldName])
+        case BagEmpty
         case BagUnion(Term, Term)
         case Record(List[RecordField])
         case FieldProjection(Term, FieldName)
