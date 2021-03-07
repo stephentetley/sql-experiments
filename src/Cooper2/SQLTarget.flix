@@ -20,7 +20,7 @@ namespace Cooper2/SQLTarget {
     use Text/PrettyPrint.{<<>>, <>, <!>, <&>, hang, group, foldDocs, 
         tupled, text, char, int32, squotes, dot, maybeParens};
 
-    use class Text/PrettyPrint.Pretty;
+    use Text/PrettyPrint.Pretty;
 
     use Cooper2/Common.{TableName, FieldName, Variable};
 
@@ -123,7 +123,7 @@ namespace Cooper2/SQLTarget {
     pub def ppConstant(n: Int32, x: Constant): Doc = match x {
         case Bool(b)    => if (b) int32(1) else int32(0)
         case String(s)  => squotes(text(s))
-        case Int(i)     => maybeParens((n > noPrec() and (i < 0)) , int32(i))
+        case Int(i)     => maybeParens((n > noPrec() and (i < 0)), int32(i))
         case Null       => text("null")
     }
 

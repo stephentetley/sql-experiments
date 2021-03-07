@@ -8,7 +8,7 @@ use Cooper2/SQLTarget.Expr.{FieldProjection, Constant};
 use Cooper2/SQLTarget.Constant.{Int, String};
 
 
-def main(): Unit & Impure = 
+def main(_args: Array[String]): Int32 & Impure = 
     let q1 = Select(
         SelectFromWhere(
           As(FieldProjection("e1", "first_name"), "name") :: As(FieldProjection("e1", "age_in_years"), "age") :: Nil
@@ -17,4 +17,5 @@ def main(): Unit & Impure =
         )
     );
     let ans = Text/PrettyPrint.prettyPrint(80, Text/PrettyPrint/Pretty.pretty(q1));
-    Console.printLine(ans)
+    Console.printLine(ans);
+    0
