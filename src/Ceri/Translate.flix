@@ -24,14 +24,15 @@ namespace Ceri/Translate {
     /// Relational Algebra - not a full or correct definition...
 
     pub enum Formula { 
-        case AttributeAttribute
-        case AttributeConstant
+        case AttributeAttribute(Int32, Int32)
+        case AttributeConstant(Int32, Constant)
     }
 
-    pub enum Relation { 
-        case Select(Formula, Relation)
-        case Project(List[Int32], Relation)      // Capital pi
-        case CartesianProduct(Relation, Relation)
+    pub enum RelExpr { 
+        case Select(List[Formula], RelExpr)
+        case Project(List[Int32], RelExpr)      // Capital pi
+        case CartesianProduct(RelExpr, RelExpr)
+        case EquiJoin(RelExpr, List[Formula], RelExpr)
         case Table(String)
     }
 
@@ -183,15 +184,16 @@ namespace Ceri/Translate {
             }
         }
 
-    def findConst(atoms: List[Term]): Option[(Int32, Term)] = findConstHelper(const, atoms, 0)
+    def findConst(atoms: List[Term]): Option[(Int32, Constant)] = findConstHelper(atoms, 0)
 
 
     ///
     /// Helper function for `findConst`.
     ///
-    def findConstHelper(f: Term -> Bool, xs: List[Term], acc: Int32): Option[(Int32, Term)] = match xs {
+    def findConstHelper(xs: List[Term], acc: Int32): Option[(Int32, Constant)] = match xs {
         case Nil => None
-        case x :: rs => if (f(x)) Some((acc, x)) else findConstHelper(f, rs, acc+1)
+        case Const(c1) :: _ => Some((acc, c1)) 
+        case _ :: rs => findConstHelper(rs, acc+1)
     }
 
     def findMultiple(atoms: List[Term]): Option[((Int32, Term), (Int32, Term))] = findMultipleHelper1(atoms, 0)
@@ -222,7 +224,9 @@ namespace Ceri/Translate {
     def snocEQ(xs: List[Atom], x: Term, alphai: Term): List[Atom] = 
         List.append(xs, Atom("EQ", x :: alphai :: Nil) :: Nil)
 
-    pub def translateC(c: Clause): Mon[Relation] = 
+    /// Note - I can't see where the renaming translation takes place 
+    /// (Predicate symbols get change to start with uppercase in the example text)
+    pub def translateC(c: Clause): Mon[RelExpr] = 
         use Ceri/Monad.{flatMap, point};
         let lhs = getLhs(c);
         let rhs: List[Atom] = getRhs(c);
@@ -231,7 +235,7 @@ namespace Ceri/Translate {
         match findConst(alphas) {
             case Some((_, alphai)) => { 
                 let* x = newvar();
-                translateC(Clause(replaceSymbol1(lhs, alphai, x), snocEQ(rhs, x, alphai)))
+                translateC(Clause(replaceSymbol1(lhs, Const(alphai), x), snocEQ(rhs, x, Const(alphai))))
             }
             case None => match findMultiple(alphas) {
                 case Some(((_, alphai), (_, alphaj))) => { 
@@ -246,22 +250,27 @@ namespace Ceri/Translate {
             }
         }
 
-    pub def translateRhs(rhs: List[Atom]): Mon[Relation] = 
+    pub def translateRhs(rhs: List[Atom]): Mon[RelExpr] = 
         use Ceri/Monad.{flatMap, point};
         let betas = List.flatMap(getArgs, rhs);
         match findConst(betas) {
-            case Some((_i, betai)) => { 
+            case Some((i, betai)) => { 
+                /// Case a
                 let* x = newvar();
-                let* reln = translateRhs(replaceSymbol(rhs, betai, x));
-                point(Select(AttributeConstant, reln))
+                let* reln = translateRhs(replaceSymbol(rhs, Const(betai), x));
+                point(Select(AttributeConstant(i, betai) :: Nil, reln))
             }
             case None => match findMultiple(betas) {
-                case Some(((_i, betai), (_j, _betaj))) => {
+                case Some(((i, betai), (j, _betaj))) => {
+                    /// Case b
                     let* x = newvar();
                     let* reln = translateRhs(replaceSymbol(rhs, betai, x));
-                    point(Select(AttributeAttribute, reln))
+                    point(Select(AttributeAttribute(i, j) :: Nil, reln))
                 }
-                case None => point(CartesianProduct(Table("m i=1"), Table("Qi")))
+                /// This is a hack, I can't decipher the book's notation at this point
+                /// even though it is explained in the notes before the algorithm...
+                /// m is the number of atoms in the RHS
+                case None => point(CartesianProduct(Table("m i=1"), Table("Qi")))   
             }
         }
 
