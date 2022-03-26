@@ -13,14 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
+namespace Cooper2 { 
+
+    use Text/PrettyPrint.Doc;
+
+    pub lawless class Pretty[a] { 
+        pub def pretty(x: a): Doc
+    }
+
+}
+
 namespace Cooper2/SQLTarget {
 
     use Text/PrettyPrint.Doc;
     use Text/PrettyPrint.{<<>>, <>, <!>, <&>, hang, group, foldDocs, 
         tupled, text, char, int32, squotes, dot, maybeParens};
 
-    use Text/PrettyPrint.Pretty;
+    use Cooper2.Pretty;
+    /// use Cooper2.Pretty.{pretty};
 
     use Cooper2/Common.{TableName, FieldName, Variable};
 
@@ -62,7 +73,7 @@ namespace Cooper2/SQLTarget {
     }
 
     instance Pretty[Query] { 
-        def pretty(x: Query): Doc = ppQuery(x)
+        pub def pretty(x: Query): Doc = ppQuery(x)
     }
 
     pub def ppQuery(x: Query): Doc = match x {
@@ -98,7 +109,7 @@ namespace Cooper2/SQLTarget {
     /// Precedence support is only a placeholder so far...
     
     instance Pretty[Expr] { 
-        def pretty(x: Expr): Doc = ppExpr(noPrec(), x)
+        pub def pretty(x: Expr): Doc = ppExpr(noPrec(), x)
     }
 
     pub def ppExpr(n: Int32, x: Expr): Doc = match x { 
@@ -117,7 +128,7 @@ namespace Cooper2/SQLTarget {
     }
 
     instance Pretty[Constant] { 
-        def pretty(x: Constant): Doc = ppConstant(noPrec(), x)
+        pub def pretty(x: Constant): Doc = ppConstant(noPrec(), x)
     }
 
     pub def ppConstant(n: Int32, x: Constant): Doc = match x {

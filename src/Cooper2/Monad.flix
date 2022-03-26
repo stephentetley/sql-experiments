@@ -20,7 +20,7 @@ namespace Cooper2/Monad {
     use Cooper2/Common.{Variable};
     use Cooper2/SourceLanguage.{Term};
 
-    type alias Substs = Map[Variable, Term]
+    pub type alias Substs = Map[Variable, Term]
 
     pub opaque type Mon[a] = Substs -> Result[a, String]
 

@@ -17,9 +17,9 @@
 
 namespace Cooper1/NormalForm {
 
-    type alias TableName = String       /// t
-    type alias FieldName = String       /// l
-    type alias Variable = String        /// x
+    pub type alias TableName = String       /// t
+    pub type alias FieldName = String       /// l
+    pub type alias Variable = String        /// x
 
     pub enum QueryNormalForm {
         case BagUnion(QueryNormalForm, QueryNormalForm)
@@ -71,9 +71,9 @@ namespace Cooper1/SqlFragment {
     use Text/PrettyPrint.{<<>>, <>, <!>, <&>, hang, group, foldDocs, 
         tupled, text, char, int32, squotes, dot};
 
-    type alias TableName = String       /// t
-    type alias FieldName = String       /// l
-    type alias Variable = String        /// x
+    pub type alias TableName = String       /// t
+    pub type alias FieldName = String       /// l
+    pub type alias Variable = String        /// x
 
     pub enum Query {
         case UnionAll(Query, Query)
@@ -192,9 +192,9 @@ namespace Cooper1/SqlTranslation {
     use Cooper1/SqlFragment.Constant;
     use Cooper1/SqlFragment.Constant.{Bool, String, Int, Null};
     
-    type alias TableName = String       /// t
-    type alias FieldName = String       /// l
-    type alias Variable = String        /// x
+    pub type alias TableName = String       /// t
+    pub type alias FieldName = String       /// l
+    pub type alias Variable = String        /// x
 
     pub def translateQueryNormalForm(x: NFQueryNormalForm): Query = match x { 
         case NFBagUnion(v, u)   => {
@@ -221,7 +221,7 @@ namespace Cooper1/SqlTranslation {
     }
 
     def deconsSelect(x: Query): (List[Selector], List[TableAlias], Expr) = match x {
-        case UnionAll(_,_) => panic("unreachable - x: Query at this point will always be a Select(...)")
+        case UnionAll(_,_) => bug!("unreachable - x: Query at this point will always be a Select(...)")
         case Select(SelectFromWhere(ss, ts, e)) => (ss, ts, e)
     }
 

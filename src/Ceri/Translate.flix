@@ -23,12 +23,12 @@ namespace Ceri/Translate {
 
     /// Relational Algebra - not a full or correct definition...
 
-    pub enum Formula { 
+    pub enum Formula with Eq, ToString { 
         case AttributeAttribute(Int32, Int32)
         case AttributeConstant(Int32, Constant)
     }
 
-    pub enum RelExpr { 
+    pub enum RelExpr with Eq, ToString { 
         case Select(List[Formula], RelExpr)
         case Project(List[Int32], RelExpr)      // Capital pi
         case CartesianProduct(RelExpr, RelExpr)
@@ -38,64 +38,22 @@ namespace Ceri/Translate {
 
 
     /// Syntax p.77...
-    pub enum Term {
+    pub enum Term with Eq, ToString {
         case Var(String)
         case Const(Constant)
     }
 
-    instance ToString[Term] {
-        def toString(x: Term): String = match x {
-            case Var(s) => s
-            case Const(x1) => ToString.toString(x1)
-        }
-    }
 
-
-    instance Eq[Term] {
-        def eq(x: Term, y: Term): Bool = match (x, y) {
-            case (Var(s1), Var(s2)) => s1 == s2
-            case (Const(c1), Const(c2)) => c1 == c2
-            case (_, _) => false
-        }
-
-        def neq(x: Term, y: Term): Bool = not (x == y)
-    }
-
-
-    pub enum Constant {
+    pub enum Constant with Eq, ToString {
         case String(String)
         case Int(Int32)
     }
 
-    instance ToString[Constant] {
-        def toString(x: Constant): String = match x {
-            case String(s) => "'${s}'"
-            case Int(i) => ToString.toString(i)
-        }
-    }
+    
+    pub type alias Pred = String
 
-    instance Eq[Constant] {
-        def eq(x: Constant, y: Constant): Bool = match (x, y) {
-            case (String(s1), String(s2)) => s1 == s2
-            case (Int(i1), Int(i2)) => i1 == i2
-            case (_, _) => false
-        }
-
-        def neq(x: Constant, y: Constant): Bool = not (x == y)
-    }
-
-    type alias Pred = String
-
-    pub enum Atom {
+    pub enum Atom with Eq, ToString {
         case Atom(Pred, List[Term])
-    }
-
-    instance Eq[Atom] {
-        def eq(x: Atom, y: Atom): Bool = match (x, y) { 
-            case (Atom(p1, args1), Atom(p2, args2)) => p1 == p2 and args1 == args2
-        }
-        
-        def neq(x: Atom, y: Atom): Bool = not (x == y) 
     }
 
     def getPred(x: Atom): Pred = 
@@ -107,7 +65,7 @@ namespace Ceri/Translate {
         xs
 
 
-    pub enum Clause {
+    pub enum Clause with Eq, ToString {
         case Clause(Atom, List[Atom])
     }
 
@@ -145,7 +103,7 @@ namespace Ceri/Translate {
         }
     }
 
-    def replaceFirst[a: Eq](m: a, n: a, xs: List[a]): List[a] = match xs { 
+    def replaceFirst(m: a, n: a, xs: List[a]): List[a] with Eq[a] = match xs { 
         case Nil => Nil
         case x :: rest if x == m => n :: rest
         case x :: rest if x == m => n :: replaceFirst(m, n, rest)

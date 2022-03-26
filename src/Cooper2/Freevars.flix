@@ -33,7 +33,7 @@ namespace Cooper2/Freevars {
         case For(x, t1, t2)  => 
             freevarsHelper(t1, s1 -> 
                 freevarsHelper(t2, s2 -> 
-                    k(Set.union(s1, Set.delete(x, s2)))))
+                    k(Set.union(s1, Set.remove(x, s2)))))
 
         case IfThenElse(t1, t2, t3)     =>
             freevarsHelper(t1, s1 -> 
@@ -63,7 +63,7 @@ namespace Cooper2/Freevars {
         
         case Lambda(x, t1)              => 
             freevarsHelper(t1, s1 -> 
-                k(Set.delete(x, s1)))
+                k(Set.remove(x, s1)))
                     
         case Variable(x)                => k(Set.singleton(x))
         case Constant(_)                => k(Set.empty())

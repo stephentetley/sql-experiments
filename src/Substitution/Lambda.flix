@@ -24,7 +24,7 @@ namespace Substitution/Term {
     use Text/PrettyPrint.{<<>>, <>, <!>, <&>, hang, group, foldDocs, 
         parens, text, char, int32, squotes, dot};
 
-    type alias Identifier = String
+    pub type alias Identifier = String
 
     pub enum Term[v] { 
         case Var(v)
@@ -32,20 +32,20 @@ namespace Substitution/Term {
         case App(Term[v], Term[v])
     }
 
-    pub def freeVars(x: Term[v]): Set[v] = match x { 
+    pub def freeVars(x: Term[v]): Set[v] with Order[v] = match x { 
         case Var(v)     => Set.singleton(v)
         case Lam(v, e)  => Set.difference(freeVars(e), Set.singleton(v))
         case App(f, a)  => Set.union(freeVars(f), freeVars(a))
     }
 
-    pub def allVars(x: Term[v]): Set[v] = match x { 
+    pub def allVars(x: Term[v]): Set[v] with Order[v] = match x { 
         case Var(v)     => Set.singleton(v)
         case Lam(_, e)  => allVars(e)
         case App(f, a)  => Set.union(allVars(f), allVars(a))
     }
 
 
-    pub def ppTermWith(prec: Int, x: Term[v], ppV: v -> Doc): Doc = match x {
+    pub def ppTermWith(prec: Int32, x: Term[v], ppV: v -> Doc): Doc = match x {
         case Var(v)     => ppV(v)
         case Lam(v, e)  => pparens(prec > 0, char('\\') <> ppV(v) <> dot() <> ppTermWith(0, e, ppV))
         case App(f, a)  => pparens(prec > 1, ppTermWith(1, f, ppV) <<>> ppTermWith(2, a, ppV))
@@ -65,10 +65,10 @@ namespace Substitution/IdInt {
     use Substitution/Term.Term.{Var, Lam, App};
     use Substitution/Term.{freeVars, allVars};
 
-    type alias IdInt = Int
+    pub type alias IdInt = Int32
 
-    type alias Term0 = Substitution/Term.Term[String]
-    type alias Term = Substitution/Term.Term[IdInt]
+    pub type alias Term0 = Substitution/Term.Term[String]
+    pub type alias Term = Substitution/Term.Term[IdInt]
 
     pub def ppTerm(x:Term): Doc = 
         Substitution/Term.ppTermWith(0, x, ppIdInt)
@@ -80,7 +80,7 @@ namespace Substitution/IdInt {
             text("x${Int32.toString(x)}")
 
 
-    type alias SM[a] = StateMonad[(Int32, Map[String, IdInt]), a]
+    pub type alias SM[a] = StateMonad[(Int32, Map[String, IdInt]), a]
 
     pub def toIdInt(x: Term0): Term = 
         let vs = Set.toList(freeVars(x));

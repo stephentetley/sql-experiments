@@ -17,8 +17,8 @@
 
 namespace Cooper2/Common {
 
-    type alias TableName = String       /// t
-    type alias FieldName = String       /// l
-    type alias Variable = String        /// x
+    pub type alias TableName = String       /// t
+    pub type alias FieldName = String       /// l
+    pub type alias Variable = String        /// x
  
 }
