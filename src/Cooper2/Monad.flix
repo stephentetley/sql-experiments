@@ -17,10 +17,9 @@
 
 namespace Cooper2/Monad {
 
-    use Cooper2/Common.{Variable};
-    use Cooper2/SourceLanguage.{Term};
+    use Cooper2/SourceLanguage.{SLTerm, SLVariable};
 
-    pub type alias Substs = Map[Variable, Term]
+    pub type alias Substs = Map[SLVariable, SLTerm]
 
     pub opaque type Mon[a] = Substs -> Result[a, String]
 

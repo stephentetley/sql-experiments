@@ -17,36 +17,39 @@
 
 namespace Cooper2/SourceLanguage {
 
-    use Cooper2/Common.{TableName, FieldName, Variable};
-
+    pub type alias SLTableName = String       /// t
+    pub type alias SLFieldName = String       /// l
+    pub type alias SLVariable = String        /// x
 
     /// Fig 1, page 5
 
-    pub enum Term {
-        case For(Variable, Term, Term)
-        case IfThenElse(Term, Term, Term)
-        case Table(TableName, List[FieldName])
-        case BagSingleton(Term)
-        case BagEmpty
-        case BagUnion(Term, Term)
-        case Record(List[RecordField])
-        case FieldProjection(Term, FieldName)
-        case Apply(Term, Term)
-        case Lambda(Variable, Term)
-        case Variable(Variable)
-        case Constant(Constant)
-        case Prim(String, List[Term])
-        case Empty(Term)
-        case Query(Term)
+    pub enum SLTerm {
+        case SLFor(SLVariable, SLTerm, SLTerm)
+        case SLIfThenElse(SLTerm, SLTerm, SLTerm)
+        case SLTable(SLTableName, List[SLFieldName])
+        case SLBagSingleton(SLTerm)
+        case SLBagEmpty
+        case SLBagUnion(SLTerm, SLTerm)
+        case SLRecord(List[SLRecordField])
+        case SLFieldProjection(SLTerm, SLFieldName)
+        case SLApply(SLTerm, SLTerm)
+        case SLLambda(SLVariable, SLTerm)
+        case SLVariable(SLVariable)
+        case SLConstant(SLConstant)
+        case SLPrim(String, List[SLTerm])
+        case SLEmpty(SLTerm)
+        case SLQuery(SLTerm)
     }
     
-    pub enum RecordField {
-        case RecordField(FieldName, Term)
+    pub type alias SLRecordField = 
+        { fieldName :: SLFieldName
+        , term :: SLTerm
+        }
+
+    pub enum SLConstant {
+        case SLBool(Bool)
+        case SLString(String)
+        case SLInt(Int32)
     }
 
-    pub enum Constant {
-        case Bool(Bool)
-        case String(String)
-        case Int(Int32)
-    }
 }

@@ -17,11 +17,10 @@
 
 namespace Cooper2/SourceRewrite {
 
-    use Cooper2/SourceLanguage.Term;
+    use Cooper2/SourceLanguage.{SLTerm, SLVariable};
 
-    pub type alias Variable = String        /// x
 
-    pub type alias Subst = Map[Variable, Term]
+    pub type alias Subst = Map[SLVariable, SLTerm]
 
  
 }

@@ -33,7 +33,10 @@ namespace Cooper2/SQLTarget {
     use Cooper2.Pretty;
     /// use Cooper2.Pretty.{pretty};
 
-    use Cooper2/Common.{TableName, FieldName, Variable};
+   
+    pub type alias SQLTableName = String       /// t
+    pub type alias SQLFieldName = String       /// l
+    pub type alias SQLVariable = String        /// x
 
     /// Fig 5, page 10
 
@@ -49,19 +52,19 @@ namespace Cooper2/SQLTarget {
         }
 
     pub type alias SQLTableAlias = 
-        { tableName :: TableName
-        , variable :: Variable
+        { tableName :: SQLTableName
+        , variable :: SQLVariable
         }
 
     pub enum SQLSelector {
-        case SQLAs(SQLExpr, FieldName)
-        case SQLVarAll(Variable)
+        case SQLAs(SQLExpr, SQLFieldName)
+        case SQLVarAll(SQLVariable)
     }
 
     pub enum SQLExpr {
         case SQLCaseWhen(SQLExpr, SQLExpr, SQLExpr)
         case SQLConstant(SQLConstant)
-        case SQLFieldProjection(Variable, FieldName)
+        case SQLFieldProjection(SQLVariable, SQLFieldName)
         case SQLAnd(SQLExpr, SQLExpr)
         case SQLNot(SQLExpr)
         case SQLExists(SQLQuery)

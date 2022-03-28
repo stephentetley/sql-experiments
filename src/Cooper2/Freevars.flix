@@ -17,62 +17,62 @@
 
 namespace Cooper2/Freevars {
 
-    use Cooper2/Common.{Variable};
-    use Cooper2/SourceLanguage.{Term};
-    use Cooper2/SourceLanguage.Term.{For, IfThenElse, Table, 
-        BagSingleton, BagEmpty, BagUnion, Record, 
-        FieldProjection, Apply, Lambda, Variable, Constant,
-        Prim, Empty, Query};
+
+    use Cooper2/SourceLanguage.{SLTerm, SLVariable};
+    use Cooper2/SourceLanguage.SLTerm.{SLFor, SLIfThenElse, SLTable, 
+        SLBagSingleton, SLBagEmpty, SLBagUnion, SLRecord, 
+        SLFieldProjection, SLApply, SLLambda, SLVariable, SLConstant,
+        SLPrim, SLEmpty, SLQuery};
 
 
-    pub def freevars(t: Term): Set[Variable] = freevarsHelper(t, s -> s)
+    pub def freevars(t: SLTerm): Set[SLVariable] = freevarsHelper(t, s -> s)
 
-    def freevarsHelper(t: Term, k: Set[Variable] -> Set[Variable]): Set[Variable] = match t {
+    def freevarsHelper(t: SLTerm, k: Set[SLVariable] -> Set[SLVariable]): Set[SLVariable] = match t {
         
         /// Presumably this follows "let" in usual free variable calculation and eliminates x in t2?
-        case For(x, t1, t2)  => 
+        case SLFor(x, t1, t2)  => 
             freevarsHelper(t1, s1 -> 
                 freevarsHelper(t2, s2 -> 
                     k(Set.union(s1, Set.remove(x, s2)))))
 
-        case IfThenElse(t1, t2, t3)     =>
+        case SLIfThenElse(t1, t2, t3)     =>
             freevarsHelper(t1, s1 -> 
                 freevarsHelper(t2, s2 -> 
                     freevarsHelper(t3, s3 -> 
                         k(Set.union(s1, Set.union(s2, s3))))))
 
-        case BagSingleton(t1)           => freevarsHelper(t1, s1 -> k(s1))
+        case SLBagSingleton(t1)           => freevarsHelper(t1, s1 -> k(s1))
         
-        case BagEmpty                   => k(Set.empty())
+        case SLBagEmpty                   => k(Set.empty())
 
-        case BagUnion(t1, t2)           => 
+        case SLBagUnion(t1, t2)           => 
             freevarsHelper(t1, s1 -> 
                 freevarsHelper(t2, s2 -> 
                     k(Set.union(s1, s2))))
 
-        case Record(_)                  => k(Set.empty())
+        case SLRecord(_)                  => k(Set.empty())
 
-        case FieldProjection(t1, _)     => freevarsHelper(t1, s1 -> k(s1))
+        case SLFieldProjection(t1, _)     => freevarsHelper(t1, s1 -> k(s1))
 
-        case Table(_, _)                => k(Set.empty())
+        case SLTable(_, _)                => k(Set.empty())
 
-        case Apply(t1, t2)              => 
+        case SLApply(t1, t2)              => 
             freevarsHelper(t1, s1 -> 
                 freevarsHelper(t2, s2 -> 
                     k(Set.union(s1, s2))))
         
-        case Lambda(x, t1)              => 
+        case SLLambda(x, t1)              => 
             freevarsHelper(t1, s1 -> 
                 k(Set.remove(x, s1)))
                     
-        case Variable(x)                => k(Set.singleton(x))
-        case Constant(_)                => k(Set.empty())
-        case Prim(_, ts)                => freevarsListHelper(ts, k)
-        case Empty(t1)                  => freevarsHelper(t1, s1 -> k(s1))
-        case Query(t1)                  => freevarsHelper(t1, s1 -> k(s1))
+        case SLVariable(x)                => k(Set.singleton(x))
+        case SLConstant(_)                => k(Set.empty())
+        case SLPrim(_, ts)                => freevarsListHelper(ts, k)
+        case SLEmpty(t1)                  => freevarsHelper(t1, s1 -> k(s1))
+        case SLQuery(t1)                  => freevarsHelper(t1, s1 -> k(s1))
     }
 
-    def freevarsListHelper(ts: List[Term], k: Set[Variable] -> Set[Variable]): Set[Variable] = match ts { 
+    def freevarsListHelper(ts: List[SLTerm], k: Set[SLVariable] -> Set[SLVariable]): Set[SLVariable] = match ts { 
         case t1 :: rest => 
             freevarsHelper(t1, s1 -> 
                 freevarsListHelper(rest, s2 -> 

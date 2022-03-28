@@ -19,22 +19,15 @@
 
 namespace Cooper2/ToSQL {
 
-    use Cooper2/QNF.{QueryNormalForm};
-    use Cooper2/QNF.QueryNormalForm.{BagUnion => QNFBagUnion, 
-        BagEmpty => QNFBagEmpty, ComprehensionNormalForm => QNFComprehensionNormalForm};
-    use Cooper2/QNF.{ComprehensionNormalForm => QNFComprehensionNormalForm};
-    use Cooper2/QNF.ComprehensionNormalForm.{For => QNFFor, ComprehensionBody => QNFComprehensionBody};
-    use Cooper2/QNF.{ComprehensionBody => QNFComprehensionBody};
-    use Cooper2/QNF.ComprehensionBody.{IfThen => QNFIfThen, Bag => QNFBag, Table => QNFTable};
-    use Cooper2/QNF.{RowForm => QNFRowForm};
-    use Cooper2/QNF.RowForm.{Record => QNFRecord, Var => QNFVar};
-    use Cooper2/QNF.{RecordField => QNFRecordField};
-    use Cooper2/QNF.RecordField.{RecordField => QNFRecordField};
-    use Cooper2/QNF.{BasicExpr => QNFBasicExpr};
-    use Cooper2/QNF.BasicExpr.{IfThenElse => QNFIfThenElse, Empty => QNFEmpty, 
-        Prim => QNFPrim, FieldProjection => QNFFieldProjection, Constant => QNFConstant};
-    use Cooper2/QNF.{Constant => QNFConstant};
-    use Cooper2/QNF.Constant.{Bool => QNFBool, String => QNFString, Int => QNFInt};
+    use Cooper2/SourceLanguage.SLTerm;
+    use Cooper2/SourceLanguage.SLTerm.{SLFor, SLIfThenElse,
+        SLTable, SLBagSingleton, SLBagEmpty, SLBagUnion,
+        SLRecord, SLFieldProjection, SLApply, SLLambda,
+        SLVariable, SLConstant, SLPrim, SLEmpty, 
+        SLQuery};
+    use Cooper2/SourceLanguage.SLRecordField;
+    use Cooper2/SourceLanguage.SLConstant;
+    use Cooper2/SourceLanguage.SLConstant.{SLBool, SLString, SLInt};
 
     use Cooper2/SQLTarget.{SQLSelectFromWhere, SQLTableAlias};
     use Cooper2/SQLTarget.SQLQuery;
@@ -46,32 +39,32 @@ namespace Cooper2/ToSQL {
     use Cooper2/SQLTarget.SQLConstant;
     use Cooper2/SQLTarget.SQLConstant.{SQLBool, SQLString, SQLInt, SQLNull};
     
-    pub type alias TableName = String       /// t
-    pub type alias FieldName = String       /// l
-    pub type alias Variable = String        /// x
+    /// TODO - we need to translate within a monad that handles failure...
 
-    pub def translateQueryNormalForm(x: QueryNormalForm): SQLQuery = match x { 
-        case QNFBagUnion(v, u)  => {
+  
+
+    pub def translateQueryNormalForm(x: SLTerm): SQLQuery = match x { 
+        case SLBagUnion(v, u)  => {
             let v1 = translateQueryNormalForm(v);
             let u1 = translateQueryNormalForm(u);
             SQLUnionAll(v1, u1)
         }
 
-        case QNFBagEmpty(ls)    => {
-            let r1 = List.map(l -> SQLAs(SQLConstant(SQLNull), l), ls);
-            SQLSelect({selectors = r1, tableAliases = Nil, whereExpr = SQLConstant(SQLBool(false))})
-        }
+        /// case SLBagEmpty(ls)    => {
+        ///     let r1 = List.map(l -> SQLAs(SQLConstant(SQLNull), l), ls);
+        ///     SQLSelect({selectors = r1, tableAliases = Nil, whereExpr = SQLConstant(SQLBool(false))})
+        /// }
 
-        case QNFComprehensionNormalForm(f) => translateComprehensionNormalForm(f)
+        case z => translateComprehensionNormalForm(z)
     }
 
-    pub def translateComprehensionNormalForm(x: QNFComprehensionNormalForm) : SQLQuery = match x { 
-        case QNFFor(v, s, _, f)         => {
+    pub def translateComprehensionNormalForm(x: SLTerm) : SQLQuery = match x { 
+        case SLFor(v, SLTable(s, _), f)         => {
             let f1 = translateComprehensionNormalForm(f);
             let r = deconsSelect(f1);
             SQLSelect({tableAliases = {tableName = v, variable = s} :: r.tableAliases | r})
         }
-        case QNFComprehensionBody(z)    => translateComprehensionBody(z)
+        case z                      => translateComprehensionBody(z)
     }
 
     def deconsSelect(x: SQLQuery): SQLSelectFromWhere = match x {
@@ -80,65 +73,66 @@ namespace Cooper2/ToSQL {
     }
 
 
-    pub def translateComprehensionBody(x: QNFComprehensionBody): SQLQuery = match x {
-        case QNFIfThen(b, z)    => {
+    pub def translateComprehensionBody(x: SLTerm): SQLQuery = match x {
+        case SLIfThenElse(b, z, SLBagEmpty)    => {
             let b1 = translateBasicExpr(b);
             let f1 = translateComprehensionBody(z);
             let r = deconsSelect(f1);
             SQLSelect({whereExpr = SQLAnd(r.whereExpr, b1) | r})
         }
 
-        case QNFBag(r)          => {
+        case SLBagSingleton(r) => {
             let r1 = translateRowForm(r);
             SQLSelect({selectors = r1, tableAliases = Nil, whereExpr = SQLConstant(SQLBool(true))})
         }
 
-        case QNFTable(s, ls)    => { 
+        case SLTable(s, ls)    => { 
             let xs = List.map(l -> SQLAs(SQLFieldProjection(s,l), l), ls);
             SQLSelect({selectors = xs, tableAliases = {tableName = s, variable = s} :: Nil, whereExpr = SQLConstant(SQLBool(true))})
         }
+
+        case _ => bug!("translateComprehensionBody")
     }
 
 
-    pub def translateRowForm(x: QNFRowForm): List[SQLSelector] = match x {
-        case QNFRecord(fs)   => List.map(translateRecordField, fs)
-        case QNFVar(v)       => SQLVarAll(v) :: Nil
+    pub def translateRowForm(x: SLTerm): List[SQLSelector] = match x {
+        case SLRecord(fs)   => List.map(translateRecordField, fs)
+        case SLVariable(v)  => SQLVarAll(v) :: Nil
+        case _ => bug!("translateRowForm")
     }
 
-    def translateRecordField(x: QNFRecordField): SQLSelector = match x {
-        case QNFRecordField(l, b) => 
-            let e1 = translateBasicExpr(b);
-            SQLAs(e1, l)
-    }
+    def translateRecordField(x: SLRecordField): SQLSelector =
+        let e1 = translateBasicExpr(x.term);
+        SQLAs(e1, x.fieldName)
 
-    pub def translateBasicExpr(x: QNFBasicExpr): SQLExpr = match x {
-        case QNFIfThenElse(e1, e2, e3)  => {
+    pub def translateBasicExpr(x: SLTerm): SQLExpr = match x {
+        case SLIfThenElse(e1, e2, e3)  => {
             let se1 = translateBasicExpr(e1);
             let se2 = translateBasicExpr(e2);
             let se3 = translateBasicExpr(e3);
             SQLCaseWhen(se1, se2, se3)
         }
         
-        case QNFEmpty(q)                => {
+        case SLEmpty(q)                => {
             let q1 = translateQueryNormalForm(q);
             SQLNot(SQLExists(q1))
         }
 
-        case QNFPrim(name, xs)          => {
+        case SLPrim(name, xs)          => {
             let es = List.map(translateBasicExpr, xs);
             SQLPrim(name, es)
         }
 
-        case QNFFieldProjection(v, l)   => SQLFieldProjection(v, l)
-
-        case QNFConstant(c)             => SQLConstant(translateConstant(c))
+        case SLFieldProjection(SLVariable(v), l)   => SQLFieldProjection(v, l)
+        case SLConstant(c)                         => SQLConstant(translateConstant(c))
+        case _ => bug!("translateBasicExpr")
     }
 
 
-    def translateConstant(x: QNFConstant): SQLConstant = match x {
-        case QNFBool(b)     => SQLBool(b)
-        case QNFString(s)   => SQLString(s)
-        case QNFInt(i)      => SQLInt(i)
+    pub def translateConstant(x: SLConstant): SQLConstant = match x {
+        case SLBool(b)     => SQLBool(b)
+        case SLString(s)   => SQLString(s)
+        case SLInt(i)      => SQLInt(i)
     }
 
 }
