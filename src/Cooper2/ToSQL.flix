@@ -19,6 +19,11 @@
 
 namespace Cooper2/ToSQL {
 
+    use Applicative.{point};
+
+    use Cooper2/Monad.Mon;
+    use Cooper2/Monad.{flatMap, throwError};
+
     use Cooper2/SourceLanguage.SLTerm;
     use Cooper2/SourceLanguage.SLTerm.{SLFor, SLIfThenElse,
         SLTable, SLBagSingleton, SLBagEmpty, SLBagUnion,
@@ -43,11 +48,11 @@ namespace Cooper2/ToSQL {
 
   
 
-    pub def translateQueryNormalForm(x: SLTerm): SQLQuery = match x { 
-        case SLBagUnion(v, u)  => {
-            let v1 = translateQueryNormalForm(v);
-            let u1 = translateQueryNormalForm(u);
-            SQLUnionAll(v1, u1)
+    pub def translateQueryNormalForm(x: SLTerm): Mon[SQLQuery] = match x { 
+        case SLBagUnion(v, u)                       => {
+            let* v1 = translateQueryNormalForm(v);
+            let* u1 = translateQueryNormalForm(u);
+            point(SQLUnionAll(v1, u1))
         }
 
         /// case SLBagEmpty(ls)    => {
@@ -55,84 +60,88 @@ namespace Cooper2/ToSQL {
         ///     SQLSelect({selectors = r1, tableAliases = Nil, whereExpr = SQLConstant(SQLBool(false))})
         /// }
 
-        case z => translateComprehensionNormalForm(z)
+        case _                                      => translateComprehensionNormalForm(x)
     }
 
-    pub def translateComprehensionNormalForm(x: SLTerm) : SQLQuery = match x { 
-        case SLFor(v, SLTable(s, _), f)         => {
-            let f1 = translateComprehensionNormalForm(f);
-            let r = deconsSelect(f1);
-            SQLSelect({tableAliases = {tableName = v, variable = s} :: r.tableAliases | r})
+    pub def translateComprehensionNormalForm(x: SLTerm): Mon[SQLQuery] = match x { 
+        case SLFor(v, SLTable(s, _), f)             => {
+            let* f1 = translateComprehensionNormalForm(f);
+            let* r = deconsSelect(f1);
+            point(SQLSelect({tableAliases = {tableName = v, variable = s} :: r.tableAliases | r}))
         }
-        case z                      => translateComprehensionBody(z)
+        case _                                      => translateComprehensionBody(x)
     }
 
-    def deconsSelect(x: SQLQuery): SQLSelectFromWhere = match x {
-        case SQLUnionAll(_,_) => bug!("unreachable - x: Query at this point will always be a Select(...)")
-        case SQLSelect(r)     => r
+    def deconsSelect(x: SQLQuery): Mon[SQLSelectFromWhere] = match x {
+        case SQLUnionAll(_,_) => throwError("deconsSelect - unreachable - x: Query at this point will always be a Select(...)")
+        case SQLSelect(r)     => point(r)
     }
 
 
-    pub def translateComprehensionBody(x: SLTerm): SQLQuery = match x {
-        case SLIfThenElse(b, z, SLBagEmpty)    => {
-            let b1 = translateBasicExpr(b);
-            let f1 = translateComprehensionBody(z);
-            let r = deconsSelect(f1);
-            SQLSelect({whereExpr = SQLAnd(r.whereExpr, b1) | r})
+    pub def translateComprehensionBody(x: SLTerm): Mon[SQLQuery] = match x {
+        case SLIfThenElse(b, z, SLBagEmpty)         => {
+            let* b1 = translateBasicExpr(b);
+            let* f1 = translateComprehensionBody(z);
+            let* r = deconsSelect(f1);
+            point(SQLSelect({whereExpr = SQLAnd(r.whereExpr, b1) | r}))
         }
 
-        case SLBagSingleton(r) => {
-            let r1 = translateRowForm(r);
-            SQLSelect({selectors = r1, tableAliases = Nil, whereExpr = SQLConstant(SQLBool(true))})
+        case SLBagSingleton(r)                      => {
+            let* r1 = translateRowForm(r);
+            point(SQLSelect({selectors = r1, tableAliases = Nil, whereExpr = SQLConstant(SQLBool(true))}))
         }
 
-        case SLTable(s, ls)    => { 
+        case SLTable(s, ls)                         => { 
             let xs = List.map(l -> SQLAs(SQLFieldProjection(s,l), l), ls);
-            SQLSelect({selectors = xs, tableAliases = {tableName = s, variable = s} :: Nil, whereExpr = SQLConstant(SQLBool(true))})
+            point(SQLSelect({selectors = xs, tableAliases = {tableName = s, variable = s} :: Nil, whereExpr = SQLConstant(SQLBool(true))}))
         }
 
-        case _ => bug!("translateComprehensionBody")
+        case _                                      => throwError("translateComprehensionBody - not eliminated")
     }
 
-
-    pub def translateRowForm(x: SLTerm): List[SQLSelector] = match x {
-        case SLRecord(fs)   => List.map(translateRecordField, fs)
-        case SLVariable(v)  => SQLVarAll(v) :: Nil
-        case _ => bug!("translateRowForm")
+    pub def translateRowForm(x: SLTerm): Mon[List[SQLSelector]] = match x {
+        case SLRecord(fs)   => Traversable.traverse(translateRecordField, fs)
+        case SLVariable(v)  => point(SQLVarAll(v) :: Nil)
+        case _              => throwError("translateRowForm - not eliminated")
     }
 
-    def translateRecordField(x: SLRecordField): SQLSelector =
-        let e1 = translateBasicExpr(x.term);
-        SQLAs(e1, x.fieldName)
+    def translateRecordField(x: SLRecordField): Mon[SQLSelector] =
+        let* e1 = translateBasicExpr(x.term);
+        point(SQLAs(e1, x.fieldName))
 
-    pub def translateBasicExpr(x: SLTerm): SQLExpr = match x {
-        case SLIfThenElse(e1, e2, e3)  => {
-            let se1 = translateBasicExpr(e1);
-            let se2 = translateBasicExpr(e2);
-            let se3 = translateBasicExpr(e3);
-            SQLCaseWhen(se1, se2, se3)
+    pub def translateBasicExpr(x: SLTerm): Mon[SQLExpr] = match x {
+        case SLIfThenElse(e1, e2, e3)               => {
+            let* se1 = translateBasicExpr(e1);
+            let* se2 = translateBasicExpr(e2);
+            let* se3 = translateBasicExpr(e3);
+            point(SQLCaseWhen(se1, se2, se3))
         }
         
-        case SLEmpty(q)                => {
-            let q1 = translateQueryNormalForm(q);
-            SQLNot(SQLExists(q1))
+        case SLEmpty(q)                             => {
+            let* q1 = translateQueryNormalForm(q);
+            point(SQLNot(SQLExists(q1)))
         }
 
-        case SLPrim(name, xs)          => {
-            let es = List.map(translateBasicExpr, xs);
-            SQLPrim(name, es)
+        case SLPrim(name, xs)                       => {
+            let* es = Traversable.traverse(translateBasicExpr, xs);
+            point(SQLPrim(name, es))
         }
 
-        case SLFieldProjection(SLVariable(v), l)   => SQLFieldProjection(v, l)
-        case SLConstant(c)                         => SQLConstant(translateConstant(c))
-        case _ => bug!("translateBasicExpr")
+        case SLFieldProjection(SLVariable(v), l)    => point(SQLFieldProjection(v, l))
+        
+        case SLConstant(c)                          => {
+            let* c1 = translateConstant(c);
+            point(SQLConstant(c1))
+        }
+
+        case _                                      => throwError("translateBasicExpr - not eliminated")
     }
 
 
-    pub def translateConstant(x: SLConstant): SQLConstant = match x {
-        case SLBool(b)     => SQLBool(b)
-        case SLString(s)   => SQLString(s)
-        case SLInt(i)      => SQLInt(i)
+    pub def translateConstant(x: SLConstant): Mon[SQLConstant] = match x {
+        case SLBool(b)     => point(SQLBool(b))
+        case SLString(s)   => point(SQLString(s))
+        case SLInt(i)      => point(SQLInt(i))
     }
 
 }
