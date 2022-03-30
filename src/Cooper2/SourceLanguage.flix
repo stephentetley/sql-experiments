@@ -26,7 +26,7 @@ namespace Cooper2/SourceLanguage {
     pub enum SLTerm {
         case SLFor(SLVariable, SLTerm, SLTerm)
         case SLIfThenElse(SLTerm, SLTerm, SLTerm)
-        case SLTable(SLTableName, List[SLFieldName])
+        case SLTable(SLTableName, SLType)
         case SLBagSingleton(SLTerm)
         case SLBagEmpty
         case SLBagUnion(SLTerm, SLTerm)
@@ -50,6 +50,15 @@ namespace Cooper2/SourceLanguage {
         case SLBool(Bool)
         case SLString(String)
         case SLInt(Int32)
+    }
+
+    pub enum SLType {
+        case TyRecord(List[(SLFieldName, SLType)])
+        case TyBag(SLType)
+        case TyFun(List[SLType], SLType)    // Has effect...
+        case TyBool
+        case TyInt
+        case TyString
     }
 
 }

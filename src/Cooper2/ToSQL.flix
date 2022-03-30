@@ -33,6 +33,9 @@ namespace Cooper2/ToSQL {
     use Cooper2/SourceLanguage.SLRecordField;
     use Cooper2/SourceLanguage.SLConstant;
     use Cooper2/SourceLanguage.SLConstant.{SLBool, SLString, SLInt};
+    use Cooper2/SourceLanguage.SLType;
+    use Cooper2/SourceLanguage.SLType.{TyRecord, TyBag,
+        TyFun, TyBool, TyInt, TyString};
 
     use Cooper2/SQLTarget.{SQLSelectFromWhere, SQLTableAlias};
     use Cooper2/SQLTarget.SQLQuery;
@@ -91,8 +94,8 @@ namespace Cooper2/ToSQL {
             point(SQLSelect({selectors = r1, tableAliases = Nil, whereExpr = SQLConstant(SQLBool(true))}))
         }
 
-        case SLTable(s, ls)                         => { 
-            let xs = List.map(l -> SQLAs(SQLFieldProjection(s,l), l), ls);
+        case SLTable(s, TyBag(TyRecord(ls)))        => { 
+            let xs = List.map(f1 -> {let l = fst(f1); SQLAs(SQLFieldProjection(s,l), l)}, ls);
             point(SQLSelect({selectors = xs, tableAliases = {tableName = s, variable = s} :: Nil, whereExpr = SQLConstant(SQLBool(true))}))
         }
 
