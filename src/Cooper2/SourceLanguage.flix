@@ -61,4 +61,10 @@ namespace Cooper2/SourceLanguage {
         case TyString
     }
 
+    pub def isRelationTyped(t: SLType): Bool = match t {
+        case TyBag(TyRecord(_)) => true
+        case _                  => false
+    }
+
+
 }

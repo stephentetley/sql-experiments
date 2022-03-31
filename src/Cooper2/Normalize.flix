@@ -28,31 +28,34 @@ namespace Cooper2/Normalize {
         SLRecord, SLFieldProjection, SLApply, SLLambda,
         SLVariable, SLConstant, SLPrim, SLEmpty, 
         SLQuery};
+    use Cooper2/SourceLanguage.SLType;
+    use Cooper2/SourceLanguage.SLType.{TyRecord, TyBag,
+        TyFun, TyBool, TyInt, TyString};
 
 
-    pub def forZeroL(x: SLTerm): Mon[SLTerm] = match x { 
+    pub def forZeroL(x: SLTerm, _: SLType): Mon[SLTerm] = match x { 
         case SLFor(_, SLBagEmpty, _)                => point(SLBagEmpty)
         case _                                      => point(x)
     }
 
-    pub def forZeroR(x: SLTerm): Mon[SLTerm] = match x { 
+    pub def forZeroR(x: SLTerm, _: SLType): Mon[SLTerm] = match x { 
         case SLFor(_, _, SLBagEmpty)                => point(SLBagEmpty)
         case _                                      => point(x)
     }
 
-    pub def ifZero(x: SLTerm): Mon[SLTerm] = match x { 
+    pub def ifZero(x: SLTerm, _: SLType): Mon[SLTerm] = match x { 
         case SLIfThenElse(_, SLBagEmpty, SLBagEmpty)    => point(SLBagEmpty)
         case _                                          => point(x)
     }
  
-    pub def ifUnion(x: SLTerm): Mon[SLTerm] = match x { 
+    pub def ifUnion(x: SLTerm, _: SLType): Mon[SLTerm] = match x { 
         case SLIfThenElse(b, SLBagUnion(m, n), SLBagEmpty)  => 
             point(SLBagUnion(SLIfThenElse(b, m, SLBagEmpty), SLIfThenElse(b, n, SLBagEmpty)))
-            
+
         case _                                              => point(x)
     }
 
-    pub def ignoreDb(x: SLTerm): Mon[SLTerm] = match x { 
+    pub def ignoreDb(x: SLTerm, _: SLType): Mon[SLTerm] = match x { 
         case SLQuery(m)                             => point(m)
         case _                                      => point(x)
     }

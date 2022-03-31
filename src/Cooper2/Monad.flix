@@ -17,7 +17,13 @@
 
 namespace Cooper2/Monad {
 
-    use Cooper2/SourceLanguage.{SLTerm, SLVariable};
+    use Cooper2/SourceLanguage.SLTerm;
+    use Cooper2/SourceLanguage.SLTerm.{SLFor, SLIfThenElse,
+        SLTable, SLBagSingleton, SLBagEmpty, SLBagUnion,
+        SLRecord, SLFieldProjection, SLApply, SLLambda,
+        SLVariable, SLConstant, SLPrim, SLEmpty, 
+        SLQuery};
+    use Cooper2/SourceLanguage.{SLVariable};
 
     pub type alias Substs = Map[SLVariable, SLTerm]
 
@@ -36,6 +42,10 @@ namespace Cooper2/Monad {
     instance Monad[Mon] {
         pub def flatMap(k: a -> Mon[b] & ef, ma: Mon[a]): Mon[b] & ef = flatMap(k, ma)
     }
+
+    pub def run(ma: Mon[a]): Result[a, String] = 
+        let env = Map.empty();
+        apply1(ma, env, 0) |> Result.map(snd)
 
     def apply1(x: Mon[a], env: Substs, st: Int32): Result[(Int32, a), String] = 
         let Mon(x1) = x;
@@ -74,5 +84,19 @@ namespace Cooper2/Monad {
 
     pub def newVar(sn: String): Mon[String] = 
         Mon((_, s) -> let s1 = s+1 ; Ok((s1, sn + ".${s1}")))
+
+    pub def lookup(varname: String): Mon[SLTerm] = 
+        Mon((r, s) -> 
+            match Map.get(varname, r) {
+                case None    => Ok((s, SLVariable(varname)))
+                case Some(t) => Ok((s, t))
+            }
+        )
          
+    pub def subst(t: SLTerm): Mon[SLTerm] = match t {
+        case SLVariable(v)                          => lookup(v)
+        case SLConstant(_)                          => point(t)
+        case _                                      => point(t)
+    }
+
 }

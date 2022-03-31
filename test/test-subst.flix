@@ -8,9 +8,10 @@ use Substitution/Term.Term.{Var, Lam, App};
 
 @test
 def test01(): Unit & Impure =
+    println("TestSubst test01...");
     let term1: Term0 = Lam("f", Lam("t", Var("f")));
     let term2 = whnf(toIdInt(term1));
     let ans = Text/PrettyPrint.render(80, ppTerm(term2));
-    Console.printLine(ans)
+    println(ans)
 
 }
