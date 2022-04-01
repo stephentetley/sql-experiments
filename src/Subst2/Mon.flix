@@ -50,9 +50,9 @@ namespace Subst2/Mon {
         point(i)
 
     pub def genId(s: String): Mon[ka, String] = 
-        (i -> "${s}.${i}") <$> freshInt32()
+        (i -> "${s}_${i}") <$> freshInt32()
         
-
+    pub def freshVar(): Mon[ka, String] = genId("xyz")
         
 
 }

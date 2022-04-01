@@ -54,7 +54,7 @@ namespace Subst2/Syntax {
     pub def ppTerm(prec: Int32, x: Term): Doc = match x {
         case Var(v)     => text(v)
         case Cst(c)     => ppConstant(c)
-        case Lam(v, e)  => pparens(prec > 0, char('\\') <> text(v) <> dot() <> ppTerm(0, e))
+        case Lam(v, e)  => pparens(prec > 0, char('\\') <> text(v) <> dot() <<>> ppTerm(0, e))
         case App(f, a)  => pparens(prec > 1, ppTerm(1, f) <<>> ppTerm(2, a))
     }
 
