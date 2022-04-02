@@ -46,7 +46,7 @@ namespace Subst2/Beta {
         case App(f, a)              => {
             let* ans = cbn(f);
             match ans {
-                case Lam(x, e)          => subst(x, e, a) >>= cbn
+                case Lam(x, e)          => subst(x, a, e) >>= cbn
                 case e1                 => point(App(e1, a))
             }
         }
