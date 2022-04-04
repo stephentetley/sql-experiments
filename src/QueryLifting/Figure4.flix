@@ -18,15 +18,12 @@
 
 namespace QueryLifting/Figure4 {
 
-    use Text/PrettyPrint.Doc;
-    use Text/PrettyPrint.{<<>>, <>, <!>, <&>, hang, group, foldDocs, 
-        parens, text, char, int32, squotes, dot};
 
     pub type alias SQL = String
 
     /// page 8 (Source Language)
-    /// TODO - can comprehensions be nested properly...
-    pub enum Term {
+    /// TODO - can comprehensions be nested properly or should they be Lists (Nels) ?...
+    pub enum Term with ToString {
         case Var(String)
         case Table(String)
         case PrimOp(String, List[Term])
@@ -49,9 +46,34 @@ namespace QueryLifting/Figure4 {
         case IsEmptyBag(Term)
     }
 
-    pub enum Generator {
+    pub enum Generator with ToString {
         case Generator(String, Term)
     }
+
+    /// Comprehensions are like lambdas...
+    pub def freevars(x: Term): Set[String] = match x { 
+        case Var(v)                     => Set.singleton(v)
+        case Table(_)                   => Set.empty()
+        case PrimOp(_, ts)              => Monoid.fold(List.map(freevars, ts))
+        case Record(fs)                 => Monoid.fold(List.map(snd >> freevars, fs))
+        case Proj(t, _)                 => freevars(t)
+        case SetEmpty                   => Set.empty()
+        case SetSingleton(q)            => freevars(q)
+        case SetUnion(q1, q2)           => Set.union(freevars(q1), freevars(q2))
+        case SetComprehension(_, _)     => bug!("missing")
+        case BagEmpty                   => Set.empty()
+        case BagSingleton(r)            => freevars(r)
+        case BagUnion(r1, r2)           => Set.union(freevars(r1), freevars(r2)) 
+        case BagDiff(r1, r2)            => Set.union(freevars(r1), freevars(r2))            // ???
+        case BagComprehension(_, _)     => bug!("missing")
+        case BagToSet(r)                => freevars(r)
+        case SetToBag(q)                => freevars(q)
+        case WhereSet(q1, q2)           => Set.union(freevars(q1), freevars(q2))            // ???
+        case WhereBag(r1, r2)           => Set.union(freevars(r1), freevars(r2))            // ???
+        case IsEmptySet(q)              => freevars(q)
+        case IsEmptyBag(r)              => freevars(r)
+    }
+
 
     pub def toSql(t1: Term): SQL = match t1 {
         case SetEmpty                       => "SELECT 42 WHERE 0 = 1"
