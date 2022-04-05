@@ -66,7 +66,6 @@ namespace Reduction {
             }
         }
         case Lam(v, a)              => Lam(v, a)
-        
     }
 
 
