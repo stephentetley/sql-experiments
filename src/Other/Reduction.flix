@@ -34,24 +34,25 @@ namespace Reduction {
 
 
 
-    // s[t/x] in `s` subsitute `t` for every free occurence of the variable `x`
-    def subst(s: Term, t: Term, x: String, supply: Ref[Int32]): Term & Impure = match s {
-        case Var(y)                 => if (x==y) t else Var(y)
-        case App(f, e)              => App(subst(f, t, x, supply), subst(e, t, x, supply))
-        case Lam(v, e) if v == x    => Lam(v, e)
-        case Lam(v, e)              => 
-            if (freeIn(v, t) and freeIn(v, e)) {
+    /// See Sestoft lamsml/Lambda.sml
+
+    // s[t/x] in `s` substitute `t` for every free occurence of the variable `x`
+    def subst(r: {substitution :: Term, variable :: String}, s: Term, supply: Ref[Int32]): Term & Impure = match s {
+        case Var(y)                         => if (r.variable==y) r.substitution else Var(y)
+        case App(f, e)                      => App(subst(r, f, supply), subst(r, e, supply))
+        case Lam(v, e) if r.variable == v   => Lam(v, e)
+        case Lam(v, e)                      => 
+            if (freeIn(v, r.substitution) and freeIn(r.variable, e)) {
                 let num = deref supply;
                 supply := num + 1;
                 let y1 = "x.${num}";
-                let e1 = subst(e, Var(y1), y1, supply);
-                let e2 = subst(e1, t, x, supply); 
+                let e1 = subst({substitution = Var(y1), variable = y1}, e, supply);
+                let e2 = subst(r, e1, supply); 
                 Lam(y1, e2)
             } else {
-                let e1 = subst(e, t, x, supply);
+                let e1 = subst(r, e, supply);
                 Lam(v, e1)
-            }
-                
+            }   
         } 
 
 
@@ -60,7 +61,7 @@ namespace Reduction {
         case App(f, a)              => {
             let ans = cbn(f, supply);
             match ans {
-                case Lam(x, e)          => cbn(subst(a, e, x, supply), supply)
+                case Lam(x, e)          => cbn(subst({substitution = e, variable = x}, a, supply), supply)
                 case e1                 => App(e1, a)
             }
         }

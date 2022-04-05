@@ -3,24 +3,24 @@
 
 namespace TestCooper {
 
-use Cooper1/SqlFragment.Query.{Select};
-use Cooper1/SqlFragment.SelectFromWhere.{SelectFromWhere};
-use Cooper1/SqlFragment.TableAlias.{TableAlias};
-use Cooper1/SqlFragment.Selector.{As};
-use Cooper1/SqlFragment.Expr.{FieldProjection, Constant};
-use Cooper1/SqlFragment.Constant.{Int, String};
-use Cooper1/SqlFragment.{ppQuery};
+use Cooper1/SqlLang.SQLQuery.{SQLSelect};
+use Cooper1/SqlLang.SQLSelectFromWhere.{SQLSelectFromWhere};
+use Cooper1/SqlLang.SQLTableAlias.{SQLTableAs};
+use Cooper1/SqlLang.SQLSelector.{SQLFieldAs};
+use Cooper1/SqlLang.SQLExpr.{SQLProj, SQLCst};
+use Cooper1/SqlLang.SQLConstant.{SQLInt, SQLString};
+use Cooper1/SqlLang.{ppSQLQuery};
 
 @test
 def test01(): Unit & Impure = 
-    let q1 = Select(
-        SelectFromWhere(
-          As(FieldProjection("e1", "first_name"), "name") :: As(FieldProjection("e1", "age_in_years"), "age") :: Nil
-        , TableAlias("employee", "e1") :: Nil
-        , Constant(Int(1))      /// Makes valid but vacuous where clause
+    let q1 = SQLSelect(
+        SQLSelectFromWhere(
+          SQLFieldAs(SQLProj("t1", "first_name"), "name") :: SQLFieldAs(SQLProj("t1", "age_in_years"), "age") :: Nil
+        , SQLTableAs("employee", "t1") :: Nil
+        , SQLCst(SQLInt(1))      /// Makes valid but vacuous where clause
         )
     );
-    let ans = Text/PrettyPrint.render(80, ppQuery(q1));
+    let ans = Text/PrettyPrint.render(80, ppSQLQuery(q1));
     Console.printLine(ans)
 
 }    
