@@ -23,7 +23,7 @@ namespace Cooper1/SourceLang {
 
     pub enum SrcTerm {
         case SrcFor(Variable, SrcTerm, SrcTerm)
-        case SrcIfThenElse(SrcTerm, SrcTerm, SrcTerm)
+        case SrcIfte(SrcTerm, SrcTerm, SrcTerm)
         case SrcTable(TableName, SrcType)
         case SrcBagSingleton(SrcTerm)
         case SrcBagEmpty(SrcType)
@@ -35,7 +35,7 @@ namespace Cooper1/SourceLang {
         case SrcVar(Variable)
         case SrcCst(SrcConstant)
         case SrcPrim(String, List[SrcTerm])
-        case SrcEmpty(SrcTerm)
+        case SrcIsEmpty(SrcTerm)
         case SrcQuery(SrcTerm)
     }
 

@@ -20,10 +20,10 @@ namespace Cooper1/ToSql {
 
 
     use Cooper1/SourceLang.SrcTerm;
-    use Cooper1/SourceLang.SrcTerm.{SrcFor, SrcIfThenElse,
+    use Cooper1/SourceLang.SrcTerm.{SrcFor, SrcIfte,
         SrcTable, SrcBagSingleton, SrcBagEmpty, SrcBagUnion, 
         SrcRecord, SrcProj, SrcApp, SrcLam, 
-        SrcVar, SrcCst, SrcPrim, SrcEmpty, 
+        SrcVar, SrcCst, SrcPrim, SrcIsEmpty, 
         SrcQuery};
     use Cooper1/SourceLang.SrcConstant;
     use Cooper1/SourceLang.SrcConstant.{SrcBool, SrcString, SrcInt};
@@ -82,7 +82,7 @@ namespace Cooper1/ToSql {
 
 
     pub def translateCompBody(t1: SrcTerm): SQLQuery = match t1 {
-        case SrcIfThenElse(b, z, SrcBagEmpty(_))    => {
+        case SrcIfte(b, z, SrcBagEmpty(_))          => {
             let b1 = translateBasicExpr(b);
             let f1 = translateCompBody(z);
             let frec = deconsSelect(f1);
@@ -117,14 +117,14 @@ namespace Cooper1/ToSql {
         SQLFieldAs(e1, l)
 
     pub def translateBasicExpr(t1: SrcTerm): SQLExpr = match t1 {
-        case SrcIfThenElse(e1, e2, e3)              => {
+        case SrcIfte(e1, e2, e3)                    => {
             let se1 = translateBasicExpr(e1);
             let se2 = translateBasicExpr(e2);
             let se3 = translateBasicExpr(e3);
             SQLCaseWhen(se1, se2, se3)
         }
         
-        case SrcEmpty(q)                            => {
+        case SrcIsEmpty(q)                          => {
             let q1 = translateQNF(q);
             SQLNot(SQLExists(q1))
         }

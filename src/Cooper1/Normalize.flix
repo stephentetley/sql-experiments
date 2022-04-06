@@ -3,10 +3,10 @@
 namespace Cooper1/Normalize {
     
     use Cooper1/SourceLang.SrcTerm;
-    use Cooper1/SourceLang.SrcTerm.{SrcFor, SrcIfThenElse,
+    use Cooper1/SourceLang.SrcTerm.{SrcFor, SrcIfte,
         SrcTable, SrcBagSingleton, SrcBagEmpty, SrcBagUnion, 
         SrcRecord, SrcProj, SrcApp, SrcLam, 
-        SrcVar, SrcCst, SrcPrim, SrcEmpty, 
+        SrcVar, SrcCst, SrcPrim, SrcIsEmpty, 
         SrcQuery};
     use Cooper1/SourceLang.SrcConstant;
     use Cooper1/SourceLang.SrcConstant.{SrcBool, SrcString, SrcInt};
@@ -15,20 +15,67 @@ namespace Cooper1/Normalize {
         TyFun, TyBool, TyInt, TyString};
 
     pub def normalize(t1: SrcTerm, supply: Ref[Int32]): SrcTerm & Impure = match t1 {
+        /// FOR-BETA
+        case SrcFor(x, SrcBagSingleton(m), n)                       => subst({substitution = m, variable = x}, n, supply)
 
         /// ABS-BETA
         case SrcApp(SrcLam(x, n), m)                                => subst({substitution = m, variable = x}, n, supply)
 
+        /// RECORD-BETA
+        case SrcProj(SrcRecord(fs), l)                              => match List.find(xy -> fst(xy) == l, fs) {
+            case Some(xy) => snd(xy)
+            case None     => bug!("normalize - record missing label `${l}`")
+        }
+
+        /// FOR-ZERO-L
+        case SrcFor(_, SrcBagEmpty(ty), _)                          => SrcBagEmpty(ty)
+
+        /// FOR-ZERO-R
+        case SrcFor(_, _, SrcBagEmpty(ty))                          => SrcBagEmpty(ty)
+
+        /// FOR-ASSOC
+        case SrcFor(x, SrcFor(y, l, m), n) if not freeIn(x, n)      => SrcFor(y, l, SrcFor(x, m, n))
+
+        /// FOR-UNION-SRC
+        case SrcFor(x, SrcBagUnion(m1, m2), n)                      => SrcBagUnion(SrcFor(x, m1, n), SrcFor(x, m2, n))
+
+        /// FOR-UNION-BODY
+        case SrcFor(x, m, SrcBagUnion(n1, n2))                      => SrcBagUnion(SrcFor(x, m, n1), SrcFor(x, m, n2))
+
+        /// FOR-IF-SRC
+        case SrcFor(x, SrcIfte(b, m, SrcBagEmpty(ty)), n)           => SrcIfte(b, SrcFor(x, m, n), SrcBagEmpty(ty))
+
         /// APP-IF
-        case SrcApp(SrcIfThenElse(b, l, l1), m)                     => SrcIfThenElse(b, SrcApp(l, m), SrcApp(l1, m))
+        case SrcApp(SrcIfte(b, l, l1), m)                           => SrcIfte(b, SrcApp(l, m), SrcApp(l1, m))
+
+        /// IF-RECORD (todo)
+
+        /// IF-SPLIT (this typechecks but doesn't work as we don't know the proper type of the empty bags)
+        /// Also - should we have an explicit `not` in the source language?
+        case SrcIfte(_, _, SrcBagEmpty(_))                          => t1
+        case SrcIfte(b, m, n)                                       => 
+            SrcBagUnion(SrcIfte(b, m, SrcBagEmpty(TyInt)), SrcIfte(SrcPrim("not", b :: Nil), n, SrcBagEmpty(TyInt)))
 
         /// IF-ZERO
-        case SrcIfThenElse(_, SrcBagEmpty(ty1), SrcBagEmpty(_))     => SrcBagEmpty(ty1)
+        case SrcIfte(_, SrcBagEmpty(ty1), SrcBagEmpty(_))           => SrcBagEmpty(ty1)
+
+        /// IF-FOR
+        case SrcIfte(b, SrcFor(x, m, n), SrcBagEmpty(ty))           => SrcFor(x, m, SrcIfte(b, n, SrcBagEmpty(ty)))
+
+        /// IF-UNION
+        case SrcIfte(b, SrcBagUnion(m, n), SrcBagEmpty(ty))         => 
+            SrcBagUnion(SrcIfte(b, m, SrcBagEmpty(ty)), SrcIfte(b, n, SrcBagEmpty(ty)))
+
+        /// EMPTY-FLATTEN
+        /// Does this need a fresh variable for x?
+        /// What does meta-language parens mean - unit?
+        /// Need the type as this is conditional on `m` not being relation typed
+        case SrcIsEmpty(m)                                          => SrcIsEmpty(SrcFor("x", m, SrcBagEmpty(TyInt)))
 
         /// IGNORE-DB
         case SrcQuery(m)                                            => m
         
-        case _                                                      => bug!("normalize incomplete")
+        case _                                                      => t1
     }
 
 
