@@ -37,7 +37,7 @@ namespace Reduction {
     /// See Sestoft lamsml/Lambda.sml
 
     // s[t/x] in `s` substitute `t` for every free occurence of the variable `x`
-    def subst(r: {substitution :: Term, variable :: String}, s: Term, supply: Ref[Int32]): Term & Impure = match s {
+    def subst(r: {substitution :: Term, variable :: String}, s: Term, supply: Ref[Int32, r]): Term \ Write(r) = match s {
         case Var(y)                         => if (r.variable==y) r.substitution else Var(y)
         case App(f, e)                      => App(subst(r, f, supply), subst(r, e, supply))
         case Lam(v, e) if r.variable == v   => Lam(v, e)
@@ -56,7 +56,7 @@ namespace Reduction {
         } 
 
 
-    pub def cbn(t: Term, supply: Ref[Int32]): Term & Impure = match t {
+    pub def cbn(t: Term, supply: Ref[Int32, r]): Term \ Write(r) = match t {
         case Var(v)                 => Var(v)
         case App(f, a)              => {
             let ans = cbn(f, supply);

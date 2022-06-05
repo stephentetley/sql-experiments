@@ -113,7 +113,7 @@ namespace Ceri/Translate {
     /// 0 indexed
     pub def corr(ix: Int32, lhs: Atom, rhs: List[Atom]): Int32 = 
         match nth(ix, getArgs(lhs)) {
-            case None => -1
+            case None    => -1
             case Some(t) => corrHelper(0, t, rhs)
         }
 
@@ -121,11 +121,10 @@ namespace Ceri/Translate {
         case Nil => -1
         case x1 :: rest => {
             let args = getArgs(x1);
-            let ix = List.indexOf(t, args);
-            if (ix < 0)
-                corrHelper(n + List.length(args), t, rest)
-            else 
-                n + ix
+            match List.indexOf(t, args) {
+                case None     => corrHelper(n + List.length(args), t, rest)
+                case Some(ix) => n + ix
+            }
         }
     }
         

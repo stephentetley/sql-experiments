@@ -28,7 +28,7 @@ namespace Cooper2/Monad {
     pub type alias Substs = Map[SLVariable, SLTerm]
 
     /// Environment, integer supply and failure
-    pub opaque type Mon[a] = Substs -> Int32 -> Result[(Int32, a), String]
+    pub enum Mon[a](Substs -> Int32 -> Result[(Int32, a), String])
 
     instance Functor[Mon] {
         pub def map(f: a -> b & ef, ma: Mon[a]): Mon[b] & ef = map(f, ma)

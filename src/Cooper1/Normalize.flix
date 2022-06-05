@@ -14,7 +14,7 @@ namespace Cooper1/Normalize {
     use Cooper1/SourceLang.SrcType.{TyRecord, TyBag,
         TyFun, TyBool, TyInt, TyString};
 
-    pub def normalize(t1: SrcTerm, supply: Ref[Int32]): SrcTerm & Impure = match t1 {
+    pub def normalize(t1: SrcTerm, supply: Ref[Int32, r]): SrcTerm \ Write(r) = match t1 {
         /// FOR-BETA
         case SrcFor(x, SrcBagSingleton(m), n)                       => subst({substitution = m, variable = x}, n, supply)
 
@@ -110,7 +110,7 @@ namespace Cooper1/Normalize {
     /// See Sestoft lamsml/Lambda.sml
 
     // s[t/x] in `s` substitute `t` for every free occurence of the variable `x`
-    def subst(r: {substitution :: SrcTerm, variable :: String}, s: SrcTerm, supply: Ref[Int32]): SrcTerm & Impure = match s {
+    def subst(r: {substitution :: SrcTerm, variable :: String}, s: SrcTerm, supply: Ref[Int32, r]): SrcTerm \ Write(r) = match s {
         case SrcVar(y)                              => if (r.variable==y) r.substitution else SrcVar(y)
         case SrcApp(f, e)                           => SrcApp(subst(r, f, supply), subst(r, e, supply))
         case SrcLam(v, e) if r.variable == v        => SrcLam(v, e)

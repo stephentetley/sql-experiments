@@ -18,7 +18,7 @@ namespace Cooper2 {
 
     use Text/PrettyPrint.Doc;
 
-    pub lawless class Pretty[a] { 
+    pub class Pretty[a] { 
         pub def pretty(x: a): Doc
     }
 

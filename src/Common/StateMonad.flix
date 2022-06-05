@@ -16,7 +16,7 @@
 
 namespace Common {
 
-    pub opaque type StateMonad[s, a] = s -> (s, a)
+    pub enum StateMonad[s, a](s -> (s, a))
     
 }
 

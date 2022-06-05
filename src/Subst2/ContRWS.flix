@@ -26,7 +26,7 @@ namespace Subst2/ContRWS {
     /// We use an Impure continuation so we can internally cast the `ef` of operations and not lose
     /// impurity information.
     ///
-    pub opaque type ContRWS[ka, r, w, s, a] = r -> s -> w -> (a -> s -> w -> ka & Impure) -> ka & Impure
+    pub enum ContRWS[ka, r, w, s, a](r -> s -> w -> (a -> s -> w -> ka & Impure) -> ka & Impure)
 
 
 

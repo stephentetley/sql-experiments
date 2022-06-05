@@ -18,7 +18,7 @@
 namespace Ceri/Monad {
 
 
-    pub opaque type Mon[a] = Int32 -> (a, Int32)
+    pub enum Mon[a](Int32 -> (a, Int32))
 
     def apply1(m: Mon[a], s: Int32): (a, Int32) = 
         let Mon(m1) = m;
