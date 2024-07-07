@@ -16,12 +16,12 @@
 
 /// Syntax of the "source language" page 8
 
-namespace QueryLifting/Normalization {
+mod QueryLifting.Normalization {
 
 
     /// page 8 (Source Language)
     /// TODO - can comprehensions be nested properly...
-    pub enum Term {
+    pub enum Term with Eq, ToString {
         case Var(String)
         case Table(String)
         case PrimOp(String, List[Term])
@@ -46,41 +46,39 @@ namespace QueryLifting/Normalization {
         case IsEmptyBag(Term)
     }
 
-    pub enum Generator {
+    pub enum Generator with Eq, ToString {
         case Generator(String, Term)
     }
 
-    pub def norm(t1: Term): Term = match t1 {
+    pub def normalize(t1: Term): Term = match t1 {
 
-        case App(Lam(x, m), n)                                      => subst({substitution = n, variable = x}, m)
+        case Term.App(Term.Lam(_, _), _)                                      => bug!("todo") // subst({substitution = n, variable = x}, m)
 
-        case Proj(Record(fs), l)                                    => 
+        case Term.Proj(Term.Record(fs), l)                                    => 
             match List.find(lm -> fst(lm) == l, fs) {
                 case Some((_, m))                                   => m
                 case None                                           => t1
             }
 
-        case SetComprehension(SetEmpty, _)                          => SetEmpty
+        case Term.SetComprehension(Term.SetEmpty, _)                          => Term.SetEmpty
 
-        case SetComprehension(_, Generator(_, SetEmpty))            => SetEmpty
+        case Term.SetComprehension(_, Generator.Generator(_, Term.SetEmpty))            => Term.SetEmpty
 
 
-        case WhereSet(m, PrimOp("true", Nil))                       => m
+        case Term.WhereSet(m, Term.PrimOp("true", Nil))                       => m
         
-        case WhereSet(m, PrimOp("false", Nil))                      => m
+        case Term.WhereSet(m, Term.PrimOp("false", Nil))                      => m
 
-        case WhereSet(BagEmpty, _)                                  => BagEmpty
+        case Term.WhereSet(Term.BagEmpty, _)                                  => Term.BagEmpty
 
 
-        case WhereBag(m, PrimOp("true", Nil))                       => m
+        case Term.WhereBag(m, Term.PrimOp("true", Nil))                       => m
         
-        case WhereBag(m, PrimOp("false", Nil))                      => m
+        case Term.WhereBag(m, Term.PrimOp("false", Nil))                      => m
 
         case _                                                      => t1
     }
 
-
-    def subst(_: {substitution :: Term, variable :: String}, m: Term): Term = m /// TODO
 
 
 }

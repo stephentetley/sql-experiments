@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Stephen Tetley
+ * Copyright 2024 Stephen Tetley
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,70 +14,51 @@
  * limitations under the License.
  */
 
-namespace Cooper2 { 
 
-    use Text/PrettyPrint.Doc;
+mod Cooper.SQLFragment {
 
-    pub class Pretty[a] { 
-        pub def pretty(x: a): Doc
-    }
+    // use Text.PrettyPrint.Doc;
+    // use Text.PrettyPrint.{<<>>, <>, <!>, <&>, hang, group, foldDocs, 
+    //     tupled, text, char, int32, squotes, dot, maybeParens};
 
-}
-
-namespace Cooper2/SQLTarget {
-
-    use Text/PrettyPrint.Doc;
-    use Text/PrettyPrint.{<<>>, <>, <!>, <&>, hang, group, foldDocs, 
-        tupled, text, char, int32, squotes, dot, maybeParens};
-
-    use Cooper2.Pretty;
-    /// use Cooper2.Pretty.{pretty};
-
+    use Cooper.Base.{Constant}
    
-    pub type alias SQLTableName = String       /// t
-    pub type alias SQLFieldName = String       /// l
-    pub type alias SQLVariable = String        /// x
+    pub type alias TableName = String       /// t
+    pub type alias FieldName = String       /// l
+    pub type alias Variable = String        /// x
 
     /// Fig 5, page 10
 
-    pub enum SQLQuery {
-        case SQLUnionAll(SQLQuery, SQLQuery)
-        case SQLSelect(SQLSelectFromWhere)
+    pub enum Query with Eq, ToString {
+        case UnionAll(Query, Query)
+        case Select(SelectFromWhere)
     }
 
-    pub type alias SQLSelectFromWhere = 
-        { selectors :: List[SQLSelector]
-        , tableAliases :: List[SQLTableAlias]
-        , whereExpr :: SQLExpr
-        }
-
-    pub type alias SQLTableAlias = 
-        { tableName :: SQLTableName
-        , variable :: SQLVariable
-        }
-
-    pub enum SQLSelector {
-        case SQLAs(SQLExpr, SQLFieldName)
-        case SQLVarAll(SQLVariable)
+    pub enum SelectFromWhere with Eq, ToString { 
+        case SelectFromWhere(List[Selector], List[TableAlias], Expr)
     }
 
-    pub enum SQLExpr {
-        case SQLCaseWhen(SQLExpr, SQLExpr, SQLExpr)
-        case SQLConstant(SQLConstant)
-        case SQLFieldProjection(SQLVariable, SQLFieldName)
-        case SQLAnd(SQLExpr, SQLExpr)
-        case SQLNot(SQLExpr)
-        case SQLExists(SQLQuery)
-        case SQLPrim(String, List[SQLExpr])
+    pub enum TableAlias with Eq, ToString { 
+        case TableAlias(TableName, Variable)
     }
 
-    pub enum SQLConstant {
-        case SQLBool(Bool)
-        case SQLString(String)
-        case SQLInt(Int32)
-        case SQLNull
+    pub enum Selector with Eq, ToString {
+        case As(Expr, FieldName)
+        case RowAll(Variable)
     }
 
+    pub enum Expr with Eq, ToString {
+        case CaseWhen(Expr, Expr, Expr)
+        case Constant(Constant)
+        case Null
+        case FieldProjection(Variable, FieldName)
+        case And(Expr, Expr)
+        case Not(Expr)
+        case Exists(Query)
+        case Prim(String, List[Expr])
+    }
+
+/*
     instance Pretty[SQLQuery] { 
         pub def pretty(x: SQLQuery): Doc = ppQuery(x)
     }
@@ -143,5 +124,6 @@ namespace Cooper2/SQLTarget {
     }
 
     def noPrec(): Int32 = 0
+*/
 
 }

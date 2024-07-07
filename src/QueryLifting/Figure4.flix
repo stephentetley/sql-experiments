@@ -16,14 +16,14 @@
 
 /// Syntax of the "source language" page 8
 
-namespace QueryLifting/Figure4 {
+mod QueryLifting.Figure4 {
 
 
     pub type alias SQL = String
 
     /// page 8 (Source Language)
     /// TODO - can comprehensions be nested properly or should they be Lists (Nels) ?...
-    pub enum Term with ToString {
+    pub enum Term with Eq, ToString {
         case Var(String)
         case Table(String)
         case PrimOp(String, List[Term])
@@ -46,53 +46,64 @@ namespace QueryLifting/Figure4 {
         case IsEmptyBag(Term)
     }
 
-    pub enum Generator with ToString {
+    pub enum Generator with Eq, ToString {
         case Generator(String, Term)
     }
 
-    /// Comprehensions are like lambdas...
-    pub def freevars(x: Term): Set[String] = match x { 
-        case Var(v)                     => Set.singleton(v)
-        case Table(_)                   => Set.empty()
-        case PrimOp(_, ts)              => Monoid.fold(List.map(freevars, ts))
-        case Record(fs)                 => Monoid.fold(List.map(snd >> freevars, fs))
-        case Proj(t, _)                 => freevars(t)
-        case SetEmpty                   => Set.empty()
-        case SetSingleton(q)            => freevars(q)
-        case SetUnion(q1, q2)           => Set.union(freevars(q1), freevars(q2))
-        case SetComprehension(_, _)     => bug!("missing")
-        case BagEmpty                   => Set.empty()
-        case BagSingleton(r)            => freevars(r)
-        case BagUnion(r1, r2)           => Set.union(freevars(r1), freevars(r2)) 
-        case BagDiff(r1, r2)            => Set.union(freevars(r1), freevars(r2))            // ???
-        case BagComprehension(_, _)     => bug!("missing")
-        case BagToSet(r)                => freevars(r)
-        case SetToBag(q)                => freevars(q)
-        case WhereSet(q1, q2)           => Set.union(freevars(q1), freevars(q2))            // ???
-        case WhereBag(r1, r2)           => Set.union(freevars(r1), freevars(r2))            // ???
-        case IsEmptySet(q)              => freevars(q)
-        case IsEmptyBag(r)              => freevars(r)
-    }
-
+    /// Comprehensions are treated like lambdas...
+    pub def freevars(term: Term): Set[String] = 
+        def loop(x, k) = match x {
+            case Term.Var(v)                     => k(Set.singleton(v))
+            case Term.Table(_)                   => k(Set.empty())
+            case Term.PrimOp(_, ts)              => Monoid.fold(List.map(freevars, ts))
+            case Term.Record(fs)                 => Monoid.fold(List.map(snd >> freevars, fs))
+            case Term.Proj(t, _)                 => loop(t, k)
+            case Term.SetEmpty                   => k(Set.empty())
+            case Term.SetSingleton(q)            => loop(q, k)
+            case Term.SetUnion(q1, q2)           => loop(q1, ks1 ->
+                                                        loop(q2, ks2 -> 
+                                                            k(Set.union(ks1, ks2))))
+            case Term.SetComprehension(_, _)     => bug!("missing")
+            case Term.BagEmpty                   => k(Set.empty())
+            case Term.BagSingleton(r)            => loop(r, k)
+            case Term.BagUnion(r1, r2)           => loop(r1, ks1 ->
+                                                        loop(r2, ks2 -> 
+                                                            k(Set.union(ks1, ks2))))
+            case Term.BagDiff(r1, r2)            => loop(r1, ks1 ->
+                                                        loop(r2, ks2 -> 
+                                                            k(Set.union(ks1, ks2))))
+            case Term.BagComprehension(_, _)     => bug!("missing")
+            case Term.BagToSet(r)                => loop(r, k)
+            case Term.SetToBag(q)                => loop(q, k)
+            case Term.WhereSet(q1, q2)           => loop(q1, ks1 ->
+                                                        loop(q2, ks2 -> 
+                                                            k(Set.union(ks1, ks2))))
+            case Term.WhereBag(r1, r2)           => loop(r1, ks1 ->
+                                                        loop(r2, ks2 -> 
+                                                            k(Set.union(ks1, ks2))))
+            case Term.IsEmptySet(q)              => loop(q, k)
+            case Term.IsEmptyBag(r)              => loop(r, k)
+        };
+        loop(term, identity)
 
     pub def toSql(t1: Term): SQL = match t1 {
-        case SetEmpty                       => "SELECT 42 WHERE 0 = 1"
-        case Proj(Var(x), l)                => x + "." + l
-        case Record(rs)                     => List.joinWith(fieldToSql, ", ", rs)
-        case IsEmptySet(q)                  => "NOT EXISTS " + toSql(q)
-        case SetUnion(q1, q2)               => toSql(q1) + " UNION " + toSql(q2)
-        case Table(t)                       => "SELECT * FROM " + t
-        case BagToSet(Table(t))             => "SELECT DISTINCT * FROM " + t
-        case BagToSet(BagDiff(r1, r2))      => "SELECT DISTINCT * FROM (" + toSql(r1) + " EXCEPT ALL " + toSql(r2) + ")"
-        case BagEmpty                       => "SELECT 42 WHERE 0 = 1"
-        case PrimOp(n, args)                => n + "(" + List.joinWith(toSql, ",", args) + ")"
-        case IsEmptyBag(r)                  => "NOT EXISTS " + toSql(r)
-        case BagUnion(r1, r2)               => toSql(r1) + " UNION ALL " + toSql(r2)
-        case BagDiff(r1, r2)                => toSql(r1) + " EXCEPT ALL " + toSql(r2)
-        case SetToBag(q)                    => toSql(q)
-        case SetComprehension(WhereSet(SetSingleton(m), x), g)     => 
+        case Term.SetEmpty                          => "SELECT 42 WHERE 0 = 1"
+        case Term.Proj(Term.Var(x), l)              => x + "." + l
+        case Term.Record(rs)                        => List.joinWith(fieldToSql, ", ", rs)
+        case Term.IsEmptySet(q)                     => "NOT EXISTS " + toSql(q)
+        case Term.SetUnion(q1, q2)                  => toSql(q1) + " UNION " + toSql(q2)
+        case Term.Table(t)                          => "SELECT * FROM " + t
+        case Term.BagToSet(Term.Table(t))           => "SELECT DISTINCT * FROM " + t
+        case Term.BagToSet(Term.BagDiff(r1, r2))    => "SELECT DISTINCT * FROM (" + toSql(r1) + " EXCEPT ALL " + toSql(r2) + ")"
+        case Term.BagEmpty                          => "SELECT 42 WHERE 0 = 1"
+        case Term.PrimOp(n, args)                   => n + "(" + List.joinWith(toSql, ",", args) + ")"
+        case Term.IsEmptyBag(r)                     => "NOT EXISTS " + toSql(r)
+        case Term.BagUnion(r1, r2)                  => toSql(r1) + " UNION ALL " + toSql(r2)
+        case Term.BagDiff(r1, r2)                   => toSql(r1) + " EXCEPT ALL " + toSql(r2)
+        case Term.SetToBag(q)                       => toSql(q)
+        case Term.SetComprehension(Term.WhereSet(Term.SetSingleton(m), x), g)     => 
             "SELECT DISTINCT " + toSql(m) + " FROM " + generatorToSql(g) + " WHERE " + toSql(x)
-        case BagComprehension(WhereSet(BagSingleton(m), x), g)     => 
+        case Term.BagComprehension(Term.WhereSet(Term.BagSingleton(m), x), g)     => 
             "SELECT " + toSql(m) + " FROM " + generatorToSql(g) + " WHERE " + toSql(x)
         case _                              => bug!("toSql - not normalized")
     }
@@ -102,11 +113,12 @@ namespace QueryLifting/Figure4 {
         n + " AS " + toSql(x)
 
     def generatorToSql(g: Generator): SQL = match g { 
-        case Generator(x, t) if isClosed(x) => "(" + toSql(t) + ") " + x
-        case Generator(x, t)                => "LATERAL (" + toSql(t) + ") " + x
+        case Generator.Generator(x, t) if isClosed(x) => "(" + toSql(t) + ") " + x
+        case Generator.Generator(x, t)                => "LATERAL (" + toSql(t) + ") " + x
     }
 
 
-    def isClosed(_: String): Bool = true        /// Placeholder
+    def isClosed(_: String): Bool = true        // Placeholder
+
 
 }
