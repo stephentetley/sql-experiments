@@ -99,31 +99,57 @@ mod Cooper.Phase.Normalize {
 
 */
 
+    // Write these in CPS...
+    pub def freeVars(t: Term): Set[String] = 
+        def loop(x, k) = match x {
+            case Term.For(v, l, m)                      => loop(l, l1 ->
+                                                            loop(m, m1 -> 
+                                                                k(Set.union(l1, Set.remove(v, m1)))))
+            case Term.IfThenElse(c, tn, el)             => loop(c, c1 ->
+                                                            loop(tn, tn1 -> 
+                                                                loop(el, el1 -> 
+                                                                    k(Set.union(c1, Set.union(tn1, el1))))))
+            case Term.Table(_, _)                       => k(Set.empty())
+            case Term.BagSingleton(m)                   => loop(m, k)
+            case Term.BagEmpty                          => k(Set.empty())
+            case Term.BagUnion(m, n)                    => loop(m, m1 ->
+                                                            loop(n, n1 -> 
+                                                                k(Set.union(m1, n1))))
+            case Term.Record(_fs)                       => bug!("todo")
+            case Term.Variable(v)                       => k(Set.singleton(v))
+            case Term.Lambda(v, e)                      => loop(e, e1 -> 
+                                                            k(Set.remove(v, e1)))
+            case Term.Apply(f, a)                       => loop(f, f1 -> 
+                                                            loop(a, a1 -> 
+                                                                k(Set.union(f1, a1))))
+            case _                                      => bug!("freeVars incomplete")
+        };
+        loop(t, identity)
 
-    pub def freeVars(t1: Term): Set[String] = match t1 { 
-        case Term.Variable(v)                       => Set.singleton(v)
-        case Term.Lambda(v, e)                      => Set.difference(freeVars(e), Set.singleton(v))
-        case Term.Apply(f, a)                       => Set.union(freeVars(f), freeVars(a))
-
-        case _                                      => bug!("freeVars incomplete")
-    }
-
-    pub def freeIn(v: String, t1: Term): Bool = match t1 { 
-        case Term.Variable(v1)                      => v == v1
-        case Term.Lambda(v1, e)                     => (v == v1) and freeIn(v, e)
-        case Term.Apply(f, a)                       => freeIn(v, f) or freeIn(v, a)
-
-        case _                                      => bug!("freeIn incomplete")
-    }
+    pub def freeIn(v: String, t: Term): Bool = 
+        def loop(x, k) = match x { 
+            case Term.Variable(v1)                      => k(v == v1)
+            case Term.Lambda(v1, e)                     => loop(e, e1 -> 
+                                                            k(e1 and (v == v1)))
+            case Term.Apply(f, a)                       => loop(f, f1-> 
+                                                            loop(a, a1 ->
+                                                                k(f1 or a1)))
+            case _                                      => bug!("freeIn incomplete")
+        };
+        loop(t, identity)
 
 
-    pub def allVars(t1: Term): Set[String] = match t1 { 
-        case Term.Variable(v)                       => Set.singleton(v)
-        case Term.Lambda(_, e)                      => allVars(e)
-        case Term.Apply(f, a)                       => Set.union(allVars(f), allVars(a))
+    pub def allVars(t: Term): Set[String] = 
+        def loop(x, k) = match x { 
+            case Term.Variable(v)                       => k(Set.singleton(v))
+            case Term.Lambda(_, e)                      => loop(e, k)
+            case Term.Apply(f, a)                       => loop(f, f1 -> 
+                                                            loop(a, a1 -> 
+                                                                k(Set.union(f1, a1))))
 
-        case _                                      => bug!("allVars incomplete")
-    }
+            case _                                      => bug!("allVars incomplete")
+        };
+        loop(t, identity)
 
 
 
