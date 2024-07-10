@@ -46,6 +46,12 @@ mod Cooper.SourceLang {
         case RecordField(FieldName, Term)
     }
 
+    pub def recordFieldName(x: RecordField): FieldName = match x {
+        case RecordField.RecordField(name, _) => name
+    }
 
+    pub def recordFieldTerm(x: RecordField): Term = match x {
+        case RecordField.RecordField(_, term) => term
+    }
 
 }
