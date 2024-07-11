@@ -29,21 +29,23 @@ mod Cooper.Base {
     }
     
     pub enum Type with Eq, ToString {
+        case BaseType(BaseType)
         case TyRecord(RecordType)
         case TyBag(Type)
         case TyFun(List[Type], Type)    // Has effect...
     }
 
+    pub enum BaseType with Eq, ToString {
+        case TyBool
+        case TyInt
+        case TyString
+    }
+    
     pub enum RecordType with Eq, ToString {
         case RecordType(List[(FieldName, Type)])
     }
 
 
-    pub enum BaseTypes with Eq, ToString {
-        case TyBool
-        case TyInt
-        case TyString
-    }
 
     pub def isRelationTyped(t: Type): Bool = match t {
         case Type.TyBag(Type.TyRecord(_))   => true

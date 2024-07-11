@@ -3,6 +3,7 @@
 mod Cooper.Phase.Normalize {
     
     use Cooper.Base.Variable
+    use Cooper.Base.{Type, BaseType}
     use Cooper.SourceLang.{Term, RecordField}
     use Cooper.SourceLang.{recordFieldName, recordFieldTerm}
 
@@ -43,59 +44,64 @@ mod Cooper.Phase.Normalize {
             case Term.Apply(Term.Lambda(x, n), m)                           => k(subst({substitution = m, variable = x}, n))
 
             // RECORD-BETA
-            case Term.FieldProjection(Term.Record(fs), l)                   => match List.find(xy -> recordFieldName(xy) == l, fs) {
-                case Some(xy) => k(recordFieldTerm(xy))
-                case None     => bug!("normalize - record missing label `${l}`")
-            }
+            case Term.FieldProjection(Term.Record(fs), l)                   => 
+                match List.find(xy -> recordFieldName(xy) == l, fs) {
+                    case Some(xy) => k(recordFieldTerm(xy))
+                    case None     => bug!("normalize - record missing label `${l}`")
+                }
 
             // FOR-ZERO-L
             case Term.For(_, Term.BagEmpty(ty), _)                          => k(Term.BagEmpty(ty))
 
             // FOR-ZERO-R
             case Term.For(_, _, Term.BagEmpty(ty))                          => k(Term.BagEmpty(ty))
-        /*
+
             // FOR-ASSOC
-            case Term.For(x, SrcFor(y, l, m), n) if not freeIn(x, n)      => SrcFor(y, l, SrcFor(x, m, n))
+            case Term.For(x, Term.For(y, l, m), n) if not freeIn(x, n)      => k(Term.For(y, l, Term.For(x, m, n)))
 
             // FOR-UNION-SRC
-            case Term.For(x, SrcBagUnion(m1, m2), n)                      => SrcBagUnion(SrcFor(x, m1, n), SrcFor(x, m2, n))
+            case Term.For(x, Term.BagUnion(m1, m2), n)                      => k(Term.BagUnion(Term.For(x, m1, n), Term.For(x, m2, n)))
 
             // FOR-UNION-BODY
-            case Term.For(x, m, SrcBagUnion(n1, n2))                      => SrcBagUnion(SrcFor(x, m, n1), SrcFor(x, m, n2))
+            case Term.For(x, m, Term.BagUnion(n1, n2))                      => k(Term.BagUnion(Term.For(x, m, n1), Term.For(x, m, n2)))
 
             // FOR-IF-SRC
-            case Term.For(x, SrcIfte(b, m, SrcBagEmpty(ty)), n)           => SrcIfte(b, SrcFor(x, m, n), SrcBagEmpty(ty))
+            case Term.For(x, Term.IfThenElse(b, m, Term.BagEmpty(ty)), n)   => k(Term.IfThenElse(b, Term.For(x, m, n), Term.BagEmpty(ty)))
 
             // APP-IF
-            case Term.App(SrcIfte(b, l, l1), m)                           => SrcIfte(b, SrcApp(l, m), SrcApp(l1, m))
+            case Term.Apply(Term.IfThenElse(b, l, l1), m)                   => k(Term.IfThenElse(b, Term.Apply(l, m), Term.Apply(l1, m)))
 
             // IF-RECORD (todo)
 
             // IF-SPLIT (this typechecks but doesn't work as we don't know the proper type of the empty bags)
             // Also - should we have an explicit `not` in the source language?
-            case Term.Ifte(_, _, SrcBagEmpty(_))                          => t1
-            case Term.Ifte(b, m, n)                                       => 
-                SrcBagUnion(SrcIfte(b, m, SrcBagEmpty(TyInt)), SrcIfte(SrcPrim("not", b :: Nil), n, SrcBagEmpty(TyInt)))
+            case Term.IfThenElse(_, _, Term.BagEmpty(_))                        => k(t1)
+            case Term.IfThenElse(b, m, n)                                       => 
+                k(Term.BagUnion(Term.IfThenElse(b, m, Term.BagEmpty), 
+                                Term.IfThenElse(Term.Prim("not", b :: Nil), n, Term.BagEmpty)))
 
             // IF-ZERO
-            case Term.Ifte(_, SrcBagEmpty(ty1), SrcBagEmpty(_))           => SrcBagEmpty(ty1)
+            case Term.IfThenElse(_, Term.BagEmpty, Term.BagEmpty)               => k(Term.BagEmpty)
 
             // IF-FOR
-            case Term.Ifte(b, SrcFor(x, m, n), SrcBagEmpty(ty))           => SrcFor(x, m, SrcIfte(b, n, SrcBagEmpty(ty)))
+            case Term.IfThenElse(b, Term.For(x, m, n), Term.BagEmpty)           => 
+                k(Term.For(x, m, Term.IfThenElse(b, n, Term.BagEmpty)))
 
             // IF-UNION
-            case Term.Ifte(b, SrcBagUnion(m, n), SrcBagEmpty(ty))         => 
-                SrcBagUnion(SrcIfte(b, m, SrcBagEmpty(ty)), SrcIfte(b, n, SrcBagEmpty(ty)))
+            case Term.IfThenElse(b, Term.BagUnion(m, n), Term.BagEmpty)         => 
+                k(Term.BagUnion(Term.IfThenElse(b, m, Term.BagEmpty), 
+                                Term.IfThenElse(b, n, Term.BagEmpty)))
 
             // EMPTY-FLATTEN
             // Does this need a fresh variable for x?
             // What does meta-language parens mean - unit?
             // Need the type as this is conditional on `m` not being relation typed
-            case Term.IsEmpty(m)                                          => SrcIsEmpty(SrcFor("x", m, SrcBagEmpty(TyInt)))
+            case Term.Empty(m)                                              => 
+                k(Term.Empty(Term.For("x", m, Term.BagEmpty)))
 
             // IGNORE-DB
-            case Term.Query(m)                                            => m
-        */    
+            case Term.Query(m)                                            => k(m)
+   
         case _                                                      => bug!("normalize incomplete")
     
     };
@@ -148,17 +154,8 @@ mod Cooper.Phase.Normalize {
         loop(t, identity)
 
     // Write these in CPS...
-    pub def freeIn(v: String, t: Term): Bool = 
-        def loop(x, k) = match x { 
-            case Term.Variable(v1)                      => k(v == v1)
-            case Term.Lambda(v1, e)                     => loop(e, e1 -> 
-                                                            k(e1 and (v == v1)))
-            case Term.Apply(f, a)                       => loop(f, f1-> 
-                                                            loop(a, a1 ->
-                                                                k(f1 or a1)))
-            case _                                      => bug!("freeIn incomplete")
-        };
-        loop(t, identity)
+    pub def freeIn(v: String, t: Term): Bool = Set.memberOf(v, freeVars(t))
+        
 
 
     pub def allVars(t: Term): Set[String] = 
@@ -175,7 +172,6 @@ mod Cooper.Phase.Normalize {
 
 
 
-    // See Sestoft lamsml/Lambda.sml
 
     pub def subst(se: {substitution = Term, variable = String}, term: Term): Term \ GenSym = 
         def loop(r, x, k) = match x {
