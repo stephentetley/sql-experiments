@@ -111,19 +111,18 @@ mod Cooper.Phase.Normalize {
     pub def freeVars(t: Term): Set[String] = 
         def loop(x, k) = {
             def loopFields(xs, kk) = match xs {
-                case Nil                                    => k(Set.empty())
+                case Nil                                    => kk(Set.empty())
                 case RecordField.RecordField(_, b) :: rs    => loop(b, b1 -> 
                                                                 loopFields(rs, rs1 -> 
                                                                     kk(Set.union(b1, rs1))))
             };
             def loopTerms(xs, kk) = match xs {
-                case Nil                                    => k(Set.empty())
+                case Nil                                    => kk(Set.empty())
                 case term :: rs                             => loop(term, term1 -> 
                                                                 loopTerms(rs, rs1 -> 
                                                                     kk(Set.union(term1, rs1))))
             };
             match x {
-
                 case Term.For(v, l, m)                      => loop(l, l1 ->
                                                                 loop(m, m1 -> 
                                                                     k(Set.union(l1, Set.remove(v, m1)))))
@@ -172,29 +171,54 @@ mod Cooper.Phase.Normalize {
 
 
 
-
-    pub def subst(se: {substitution = Term, variable = String}, term: Term): Term \ GenSym = 
-        def loop(r, x, k) = match x {
-            // s[t/x] in `s` substitute `t` for every free occurence of the variable `x`    
-            case Term.Variable(y)                           => if (r.variable==y) k(r.substitution) else k(Term.Variable(y))
-            case Term.Apply(f, e)                           => loop(r, f, f1 -> 
-                                                                loop(r, e, e1 -> 
-                                                                    k(Term.Apply(f1, e1))))
-            case Term.Lambda(v, e) if r.variable == v       => k(Term.Lambda(v, e))
-            // case Term.Lambda(v, e)                          => 
-            //     if (freeIn(v, r.substitution) and freeIn(r.variable, e)) {
-            //         let y1 = do GenSym.fresh();
-            //         subst1({substitution = Term.Variable(y1), variable = y1}, e, e1 -> 
-            //             subst1(r, e1, e2 -> 
-            //                 k(Term.Lambda(y1, e2))))
-            //     } else {
-            //         subst1(r, e, e1 -> 
-            //             k(Term.Lambda(v, e1)))
-            //     } 
-
-            case _                                      => bug!("subst incomplete")
+    // s[t/x] in `s` substitute `t` for every free occurence of the variable `x`    
+    pub def subst(r: {substitution = Term, variable = String}, term: Term): Term \ GenSym =
+        def loop(se, x, k) = {
+            def loopFields(senv, xs, kk) = match xs {
+                case Nil                                    => kk(Nil)
+                case RecordField.RecordField(l, b) :: rs    => loop(senv, b, b1 -> 
+                                                                loopFields(senv, rs, rs1 -> 
+                                                                    kk(RecordField.RecordField(l, b1) :: rs1)))
+            };
+            def loopTerms(senv, xs, kk) = match xs {
+                case Nil                                    => kk(Nil)
+                case tt :: rs                               => loop(senv, tt, tt1 -> 
+                                                                loopTerms(senv, rs, rs1 -> 
+                                                                    kk(tt1 :: rs1)))
+            };
+            match x {
+                case Term.IfThenElse(c, tn, el)             => loop(se, c, c1 ->
+                                                                loop(se, tn, tn1 -> 
+                                                                    loop(se, el, el1 -> 
+                                                                        k(Term.IfThenElse(c1, tn1, el1)))))
+                case Term.Table(t, ty)                          => k(Term.Table(t, ty))
+                case Term.BagSingleton(m)                       => loop(se, m, m1 -> 
+                                                                    k(Term.BagSingleton(m1)))
+                case Term.BagEmpty                              => k(Term.BagEmpty)
+                case Term.BagUnion(m, n)                        => loop(se, m, m1 ->
+                                                                    loop(se, n, n1 -> 
+                                                                        k(Term.BagUnion(m1, n1))))
+                case Term.Record(fs)                            => loopFields(se, fs, fs1 -> 
+                                                                    k(Term.Record(fs1)))
+                case Term.FieldProjection(m, l)                 => loop(se, m, m1 -> 
+                                                                    k(Term.FieldProjection(m1, l)))
+                case Term.Apply(f, e)                           => loop(se, f, f1 -> 
+                                                                    loop(se, e, e1 -> 
+                                                                        k(Term.Apply(f1, e1))))
+                case Term.Lambda(v, e) if r.variable == v       => k(Term.Lambda(v, e))
+                // ...
+                case Term.Variable(y)                           => if (r.variable==y) k(r.substitution) else k(Term.Variable(y))
+                case Term.Constant(c)                           => k(Term.Constant(c))
+                case Term.Prim(name, ts)                        => loopTerms(se, ts, ts1 -> 
+                                                                    k(Term.Prim(name, ts1)))
+                case Term.Empty(m)                              => loop(se, m, m1 -> 
+                                                                    k(Term.Empty(m1)))
+                case Term.Query(m)                              => loop(se, m, m1 -> 
+                                                                    k(Term.Query(m1)))
+                case _                                          => bug!("subst incomplete")
+            }
         };
-        loop(se, term, e -> checked_ecast(e))
+        loop(r, term, e -> checked_ecast(e))
 
 
 
