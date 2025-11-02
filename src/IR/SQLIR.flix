@@ -17,12 +17,17 @@
 
 mod IR.SQLIR {
 
+    use Text.Pretty
+    use Text.PrettyPrint.Doc
+    use Text.PrettyPrint.{<<>>, empty, int32, squotes, encloseSep, text, comma, lparen, rparen, conditionalParens}
+
     pub enum Query with Eq, ToString {
         case Select(List[(Term, String)], List[(Table, String)], Condition)
         case SelectStar(List[(Table, String)], Condition)
         case Union(OptAll, Query, Query)
         case Intersect(OptAll, Query, Query)
         case Except(OptAll, Query, Query)
+        case Join(Query, Query)
     }
 
     pub enum OptAll with Eq, ToString { 
@@ -86,6 +91,39 @@ mod IR.SQLIR {
     pub enum Type with Eq, ToString {
         case TyBoolean
         case TyVarchar
+        case TyInteger
     }
+
+    instance Pretty[OptAll] { 
+        pub override def pPrint(x: OptAll): Doc = match x {
+            case OptAll.All   => text("ALL")
+            case OptAll.NoAll => empty()
+        }
+    }
+
+    instance Pretty[OptNot] {
+        pub override def pPrint(x: OptNot): Doc = match x {
+            case OptNot.Not   => text("ALL")
+            case OptNot.NoNot => empty()
+        }
+    }
+
+    instance Pretty[Term] {
+        pub override def pPrint(x: Term): Doc = match x {
+            case Term.CBool(b)      => if (b) text("TRUE") else text("FALSE")
+            case Term.CString(s)    => squotes(text(s))
+            case Term.CInt(i)       => int32(i)
+            case Term.Null          => text("NULL")
+        }
+    }
+
+    instance Pretty[Type] {
+        pub override def pPrint(x: Type): Doc = match x {
+            case Type.TyBoolean     => text("BOOLEAN")
+            case Type.TyVarchar     => text("VARCHAR")
+            case Type.TyInteger     => text("INTEGER")
+        }
+    }
+
 
 }
