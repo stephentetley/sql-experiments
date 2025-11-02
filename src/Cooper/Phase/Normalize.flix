@@ -19,17 +19,23 @@ mod Cooper.Phase.Normalize {
     //     TyFun, TyBool, TyInt, TyString};
 
     pub eff GenSym {
-        pub def fresh(): Variable
+        def freshVar(): Variable
     }
 
 
     ///
     /// An IO handler for `GenSym`.
     ///
-    pub def ioHandler(f: Unit -> a \ ef + GenSym): a \ ef + IO = region rc {
-        let n = ref 0 @ rc;
-        try f() with GenSym {
-            def fresh(k) = k({let i = deref n; Ref.put(i+1, n); "x.${i}"})
+    pub def ioHandler(f: Unit -> a \ ef + GenSym): a \ {ef + IO} - GenSym = region rc {
+        let n = Ref.fresh(rc, 0);
+        run { 
+            f()
+        } with handler GenSym {
+            def freshVar(k) = {
+                let i = Ref.get(n); 
+                Ref.put(i+1, n); 
+                k("x.${i}")
+            }
         }
     }
 
@@ -51,10 +57,10 @@ mod Cooper.Phase.Normalize {
                 }
 
             // FOR-ZERO-L
-            case Term.For(_, Term.BagEmpty(ty), _)                          => k(Term.BagEmpty(ty))
+            case Term.For(_, Term.BagEmpty, _)                          => k(Term.BagEmpty)
 
             // FOR-ZERO-R
-            case Term.For(_, _, Term.BagEmpty(ty))                          => k(Term.BagEmpty(ty))
+            case Term.For(_, _, Term.BagEmpty)                          => k(Term.BagEmpty)
 
             // FOR-ASSOC
             case Term.For(x, Term.For(y, l, m), n) if not freeIn(x, n)      => k(Term.For(y, l, Term.For(x, m, n)))
@@ -66,7 +72,7 @@ mod Cooper.Phase.Normalize {
             case Term.For(x, m, Term.BagUnion(n1, n2))                      => k(Term.BagUnion(Term.For(x, m, n1), Term.For(x, m, n2)))
 
             // FOR-IF-SRC
-            case Term.For(x, Term.IfThenElse(b, m, Term.BagEmpty(ty)), n)   => k(Term.IfThenElse(b, Term.For(x, m, n), Term.BagEmpty(ty)))
+            case Term.For(x, Term.IfThenElse(b, m, Term.BagEmpty), n)   => k(Term.IfThenElse(b, Term.For(x, m, n), Term.BagEmpty))
 
             // APP-IF
             case Term.Apply(Term.IfThenElse(b, l, l1), m)                   => k(Term.IfThenElse(b, Term.Apply(l, m), Term.Apply(l1, m)))
@@ -75,7 +81,7 @@ mod Cooper.Phase.Normalize {
 
             // IF-SPLIT (this typechecks but doesn't work as we don't know the proper type of the empty bags)
             // Also - should we have an explicit `not` in the source language?
-            case Term.IfThenElse(_, _, Term.BagEmpty(_))                        => k(t1)
+            case Term.IfThenElse(_, _, Term.BagEmpty)                        => k(t1)
             case Term.IfThenElse(b, m, n)                                       => 
                 k(Term.BagUnion(Term.IfThenElse(b, m, Term.BagEmpty), 
                                 Term.IfThenElse(Term.Prim("not", b :: Nil), n, Term.BagEmpty)))
@@ -205,9 +211,9 @@ mod Cooper.Phase.Normalize {
                 case Term.Apply(f, e)                           => loop(se, f, f1 -> 
                                                                     loop(se, e, e1 -> 
                                                                         k(Term.Apply(f1, e1))))
-                case Term.Lambda(v, e) if r.variable == v       => k(Term.Lambda(v, e))
+                case Term.Lambda(v, e) if r#variable == v       => k(Term.Lambda(v, e))
                 // ...
-                case Term.Variable(y)                           => if (r.variable==y) k(r.substitution) else k(Term.Variable(y))
+                case Term.Variable(y)                           => if (r#variable==y) k(r#substitution) else k(Term.Variable(y))
                 case Term.Constant(c)                           => k(Term.Constant(c))
                 case Term.Prim(name, ts)                        => loopTerms(se, ts, ts1 -> 
                                                                     k(Term.Prim(name, ts1)))
