@@ -21,37 +21,54 @@ mod IR.DuckIR {
     use Text.PrettyLevel
     use Text.PrettyPrint.Doc
     use Text.PrettyPrint.{<<>>, empty, int32, squotes, encloseSep, text, char, comma, 
-        intersperse, lparen, rparen, tupled}
+        intersperse, lparen, rparen, parens, tupled}
+    
 
-
+    // TODO add args to read_csv
     pub enum Relation with Eq, ToString {
+        case Table(String)
         case Select(List[Expression], Option[Relation])
+        case Filter(Relation, Expression)
+        case ReadCSV(String)
     }
+
+
+    def ppFunApp(name: String, args: List[Doc]): Doc = 
+        text(name) ++ tupled(args)
 
     instance Pretty[Relation] {
         pub override def pPrintPrec(d: PrettyLevel, p: Int32, x: Relation): Doc = 
             def ppSel(es) = text("SELECT") <<>> intersperse(text(", "), List.map(e -> Pretty.pPrintPrec(d, p, e), es));
             match x {
+                case Relation.Table(name)               => text(name)
                 case Relation.Select(es, None)          => ppSel(es)
-                case Relation.Select(es, Some(rel))     => ppSel(es) <<>> text("FROM") <<>> Pretty.pPrintPrec(d, p, rel)
-                    
+                case Relation.Select(es, Some(reln))    => 
+                    ppSel(es) <<>> text("FROM") <<>> Pretty.pPrintPrec(d, p, reln)
+                case Relation.Filter(reln, e)           => 
+                    Pretty.pPrintPrec(d, p, reln) <<>> text("WHERE") <<>> parens(Pretty.pPrintPrec(d, p, e))
+                case Relation.ReadCSV(path)             => ppFunApp("read_csv", List#{squotes(text(path))})
             }
     }
 
 
     pub enum Expression with Eq, ToString {
         case Constant(Constant)
+        case ColumnExpression(String)
+        case ComparisonExpression(ComparisonOperator, Expression, Expression)
         case SetAlias(Expression, String)
         case StarExpression(List[String])
     }
 
     instance Pretty[Expression] {
         pub override def pPrintPrec(d: PrettyLevel, p: Int32, x: Expression): Doc = match x {
-            case Expression.Constant(c)          => Pretty.pPrint(c)
-            case Expression.SetAlias(e, name)    => 
+            case Expression.Constant(c)             => Pretty.pPrint(c)
+            case Expression.ColumnExpression(name)  => text(name)
+            case Expression.ComparisonExpression(op, e1, e2)    => 
+                Pretty.pPrintPrec(d, p, e1) <<>> Pretty.pPrint(op) <<>> Pretty.pPrintPrec(d, p, e2) 
+            case Expression.SetAlias(e, name)       => 
                 Pretty.pPrintPrec(d, p, e) <<>> text("AS") <<>> text(name)
-            case Expression.StarExpression(Nil)  => char('*')
-            case Expression.StarExpression(xs)   => 
+            case Expression.StarExpression(Nil)     => char('*')
+            case Expression.StarExpression(xs)      => 
                 char('*') <<>> text("EXCLUDE") <<>> tupled(List.map(text, xs))
         }
     }
@@ -67,6 +84,26 @@ mod IR.DuckIR {
             case Constant.ConstantNull          => text("NULL")
             case Constant.ConstantVarchar(s)    => squotes(text(s))
             case Constant.ConstantInteger(i)    => int32(i)
+        }
+    }
+
+    pub enum ComparisonOperator with Eq, ToString {
+        case Equal
+        case NotEqual
+        case GreaterThan
+        case GreaterThanOrEqualTo
+        case LessThan
+        case LessThanOrEqualTo
+    }
+
+    instance Pretty[ComparisonOperator] {
+        pub override def pPrint(x: ComparisonOperator): Doc = match x {
+            case ComparisonOperator.Equal                   => char('=')
+            case ComparisonOperator.NotEqual                => text("<>")
+            case ComparisonOperator.GreaterThan             => char('>')
+            case ComparisonOperator.GreaterThanOrEqualTo    => text(">=")
+            case ComparisonOperator.LessThan                => char('<')
+            case ComparisonOperator.LessThanOrEqualTo       => text("<=")
         }
     }
 
