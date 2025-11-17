@@ -57,6 +57,7 @@ mod IR.DuckIR {
         case Constant(Constant)
         case ColumnExpression(String)
         case ComparisonExpression(ComparisonOperator, Expression, Expression)
+        case BetweenExpression(BetweenOperator, Expression, Expression, Expression)
         case SetAlias(Expression, String)
         case StarExpression(List[String])
         case FunctionExpression(String, List[Expression])
@@ -68,6 +69,7 @@ mod IR.DuckIR {
                 case UnaryOperator.Negate           => Pretty.pPrint(op) ++ Pretty.pPrintPrec(d, p, e) 
                 case UnaryOperator.IsNull           => Pretty.pPrintPrec(d, p, e) <<>> Pretty.pPrint(op)
                 case UnaryOperator.IsNotNull        => Pretty.pPrintPrec(d, p, e) <<>> Pretty.pPrint(op)
+                case UnaryOperator.Not              => Pretty.pPrint(op) ++ Pretty.pPrintPrec(d, p, e) 
             }
             case Expression.BinaryExpression(op, e1, e2)        => 
                 Pretty.pPrintPrec(d, p, e1) <<>> Pretty.pPrint(op) <<>> Pretty.pPrintPrec(d, p, e2) 
@@ -76,6 +78,10 @@ mod IR.DuckIR {
             case Expression.ColumnExpression(name)              => text(name)
             case Expression.ComparisonExpression(op, e1, e2)    => 
                 Pretty.pPrintPrec(d, p, e1) <<>> Pretty.pPrint(op) <<>> Pretty.pPrintPrec(d, p, e2) 
+
+            case Expression.BetweenExpression(op, e1, ex, ey)    => 
+                Pretty.pPrintPrec(d, p, e1) <<>> Pretty.pPrint(op) <<>> Pretty.pPrintPrec(d, p, ex) 
+                    <<>> text("AND") <<>> Pretty.pPrintPrec(d, p, ey)
 
             case Expression.SetAlias(e, name)                   => 
                 Pretty.pPrintPrec(d, p, e) <<>> text("AS") <<>> text(name)
@@ -107,6 +113,7 @@ mod IR.DuckIR {
         case Negate
         case IsNull
         case IsNotNull
+        case Not
     }
 
     instance Pretty[UnaryOperator] {
@@ -114,6 +121,7 @@ mod IR.DuckIR {
             case UnaryOperator.Negate       => char('-')
             case UnaryOperator.IsNull       => text("IS NULL")
             case UnaryOperator.IsNotNull    => text("IS NOT NULL")
+            case UnaryOperator.Not          => text("NOT")
         }
     }
 
@@ -126,6 +134,8 @@ mod IR.DuckIR {
         case FloorDivision
         case Modulo
         case Power
+        case And
+        case Or
     }
 
     instance Pretty[BinaryOperator] {
@@ -137,6 +147,8 @@ mod IR.DuckIR {
             case BinaryOperator.FloorDivision   => text("//")
             case BinaryOperator.Modulo          => char('%')
             case BinaryOperator.Power           => text("**")
+            case BinaryOperator.And             => text("AND")
+            case BinaryOperator.Or              => text("OR")
         }
     }
 
@@ -157,6 +169,18 @@ mod IR.DuckIR {
             case ComparisonOperator.GreaterThanOrEqualTo    => text(">=")
             case ComparisonOperator.LessThan                => char('<')
             case ComparisonOperator.LessThanOrEqualTo       => text("<=")
+        }
+    }
+
+    pub enum BetweenOperator with Eq, ToString {
+        case Between
+        case NotBetween
+    }
+
+    instance Pretty[BetweenOperator] {
+        pub override def pPrint(x: BetweenOperator): Doc = match x {
+            case BetweenOperator.Between        => text("BETWEEN")
+            case BetweenOperator.NotBetween     => text("NOT BETWEEN")
         }
     }
 
