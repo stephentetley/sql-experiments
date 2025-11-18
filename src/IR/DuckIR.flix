@@ -20,8 +20,9 @@ mod IR.DuckIR {
     use Text.Pretty
     use Text.PrettyLevel
     use Text.PrettyPrint.Doc
-    use Text.PrettyPrint.{<<>>, empty, int32, squotes, encloseSep, text, char, comma, 
-        intersperse, lparen, rparen, parens, tupled}
+    use Text.PrettyPrint.{<<>>, <!>}
+    use Text.PrettyPrint.{empty, int32, squotes, encloseSep, text, char, comma, 
+        intersperse, lparen, rparen, parens, tupled, vcat, nest}
     
 
     // TODO add args to read_csv
@@ -54,6 +55,7 @@ mod IR.DuckIR {
     pub enum Expression with Eq, ToString {
         case UnaryExpression(UnaryOperator, Expression)
         case BinaryExpression(BinaryOperator, Expression, Expression)
+        case CaseExpression(List[(Expression, Expression)], Option[Expression])
         case Constant(Constant)
         case ColumnExpression(String)
         case ComparisonExpression(ComparisonOperator, Expression, Expression)
@@ -62,6 +64,14 @@ mod IR.DuckIR {
         case StarExpression(List[String])
         case FunctionExpression(String, List[Expression])
     }
+
+
+    def ppWhenPrec(d: PrettyLevel, p: Int32, w: (Expression, Expression)): Doc = 
+        let (e1, e2) = w;
+        text("WHEN") <<>> Pretty.pPrintPrec(d, p, e1) <<>> text("THEN") <<>> Pretty.pPrintPrec(d, p, e2)
+
+    def ppElsePrec(d: PrettyLevel, p: Int32, e: Expression): Doc =
+        text("ELSE") <<>> Pretty.pPrintPrec(d, p, e) 
 
     instance Pretty[Expression] {
         pub override def pPrintPrec(d: PrettyLevel, p: Int32, x: Expression): Doc = match x {
@@ -74,6 +84,13 @@ mod IR.DuckIR {
             case Expression.BinaryExpression(op, e1, e2)        => 
                 Pretty.pPrintPrec(d, p, e1) <<>> Pretty.pPrint(op) <<>> Pretty.pPrintPrec(d, p, e2) 
 
+            case Expression.CaseExpression(xs, oe)              => {
+                let body = match oe { 
+                    case None    => List.map(ppWhenPrec(d, p), xs)
+                    case Some(e) => List.map(ppWhenPrec(d, p), xs) ++ List#{ppElsePrec(d, p, e)}
+                };
+                text("CASE") <!> nest(4, vcat(body)) <!> text("END")
+            }
             case Expression.Constant(c)                         => Pretty.pPrint(c)
             case Expression.ColumnExpression(name)              => text(name)
             case Expression.ComparisonExpression(op, e1, e2)    => 
