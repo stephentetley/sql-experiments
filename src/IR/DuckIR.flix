@@ -24,7 +24,80 @@ mod IR.DuckIR {
     use Text.PrettyPrint.{empty, int32, squotes, encloseSep, text, char, comma, 
         intersperse, lparen, rparen, parens, tupled, vcat, nest}
     
+    pub enum Type with Eq, ToString {
+        case BIGINT
+        case BIT
+        case BLOB
+        case BOOLEAN
+        case DATE
+        case DOUBLE
+        case FLOAT
+        case HUGEINT
+        case INTEGER
+        case INTERVAL
+        case SMALLINT
+        case SQLNULL
+        case TIME_TZ
+        case TIME
+        case TIMESTAMP_MS
+        case TIMESTAMP_NS
+        case TIMESTAMP_S
+        case TIMESTAMP_TZ
+        case TIMESTAMP
+        case TINYINT
+        case UBIGINT
+        case UHUGEINT
+        case UINTEGER
+        case USMALLINT
+        case UTINYINT
+        case UUID
+        case VARCHAR
+        case LIST(Type)
+        case STRUCT(List[(String, Type)])
+    }
 
+    def ppStructFieldPrec(d: PrettyLevel, p: Int32, w: (String, Type)): Doc = 
+        let (n, ty) = w;
+        text(n) <<>> Pretty.pPrintPrec(d, p, ty)
+
+
+    instance Pretty[Type] {
+        pub override def pPrintPrec(d: PrettyLevel, p: Int32, x: Type): Doc = 
+            match x {
+                case Type.BIGINT                => text("BIGINT")
+                case Type.BIT                   => text("BIT")
+                case Type.BLOB                  => text("BLOB")
+                case Type.BOOLEAN               => text("BOOLEAN")
+                case Type.DATE                  => text("DATE")
+                case Type.DOUBLE                => text("DOUBLE")
+                case Type.FLOAT                 => text("FLOAT")
+                case Type.HUGEINT               => text("HUGEINT")
+                case Type.INTEGER               => text("INTEGER")
+                case Type.INTERVAL              => text("INTERVAL")
+                case Type.SMALLINT              => text("SMALLINT")
+                case Type.SQLNULL               => text("SQLNULL")
+                case Type.TIME_TZ               => text("TIME_TZ")
+                case Type.TIME                  => text("TIME")
+                case Type.TIMESTAMP_MS          => text("TIMESTAMP_MS")
+                case Type.TIMESTAMP_NS          => text("TIMESTAMP_NS")
+                case Type.TIMESTAMP_S           => text("TIMESTAMP_S")
+                case Type.TIMESTAMP_TZ          => text("TIMESTAMP_TZ")
+                case Type.TIMESTAMP             => text("TIMESTAMP")
+                case Type.TINYINT               => text("TINYINT")
+                case Type.UBIGINT               => text("UBIGINT")
+                case Type.UHUGEINT              => text("UHUGEINT")
+                case Type.UINTEGER              => text("UINTEGER")
+                case Type.USMALLINT             => text("USMALLINT")
+                case Type.UTINYINT              => text("UTINYINT")
+                case Type.UUID                  => text("UUID")
+                case Type.VARCHAR               => text("VARCHAR")
+                case Type.LIST(ty)              =>
+                    Pretty.pPrintPrec(d, p, ty) ++ text("[]")
+                
+                case Type.STRUCT(xs)            =>
+                    text("STRUCT") ++ tupled(List.map(t -> ppStructFieldPrec(d, p, t), xs))
+            }
+    }
     // TODO add args to read_csv
     pub enum Relation with Eq, ToString {
         case Table(String)
@@ -55,6 +128,7 @@ mod IR.DuckIR {
     pub enum Expression with Eq, ToString {
         case UnaryExpression(UnaryOperator, Expression)
         case BinaryExpression(BinaryOperator, Expression, Expression)
+        case CastExpression(Expression, Type)
         case CaseExpression(List[(Expression, Expression)], Option[Expression])
         case Constant(Constant)
         case ColumnExpression(String)
@@ -83,6 +157,9 @@ mod IR.DuckIR {
             }
             case Expression.BinaryExpression(op, e1, e2)        => 
                 Pretty.pPrintPrec(d, p, e1) <<>> Pretty.pPrint(op) <<>> Pretty.pPrintPrec(d, p, e2) 
+
+            case Expression.CastExpression(e, ty)               => 
+                text("CAST") ++ parens(Pretty.pPrintPrec(d, p, e) <<>> text ("AS") <<>> Pretty.pPrintPrec(d, p, ty))
 
             case Expression.CaseExpression(xs, oe)              => {
                 let body = match oe { 
