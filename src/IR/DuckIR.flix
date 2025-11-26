@@ -101,7 +101,8 @@ mod IR.DuckIR {
     // TODO add args to read_csv
     pub enum Relation with Eq, ToString {
         case Table(String)
-        case Select(List[Expression], Option[Relation])
+        case Project1(List[Expression])
+        case Project(List[Expression], Relation)
         case Filter(Relation, Expression)
         case ReadCSV(String)
     }
@@ -115,8 +116,8 @@ mod IR.DuckIR {
             def ppSel(es) = text("SELECT") <<>> intersperse(text(", "), List.map(e -> Pretty.pPrintPrec(d, p, e), es));
             match x {
                 case Relation.Table(name)               => text(name)
-                case Relation.Select(es, None)          => ppSel(es)
-                case Relation.Select(es, Some(reln))    => 
+                case Relation.Project1(es)              => ppSel(es)
+                case Relation.Project(es, reln)         => 
                     ppSel(es) <<>> text("FROM") <<>> Pretty.pPrintPrec(d, p, reln)
                 case Relation.Filter(reln, e)           => 
                     Pretty.pPrintPrec(d, p, reln) <<>> text("WHERE") <<>> parens(Pretty.pPrintPrec(d, p, e))
