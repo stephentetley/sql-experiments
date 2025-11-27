@@ -18,6 +18,7 @@
 mod IR.DuckIR {
 
     use Text.Pretty
+    use Text.PrettyPrint
     use Text.PrettyLevel
     use Text.PrettyPrint.Doc
     use Text.PrettyPrint.{<<>>, <!>}
@@ -98,12 +99,17 @@ mod IR.DuckIR {
                     text("STRUCT") ++ tupled(List.map(t -> ppStructFieldPrec(d, p, t), xs))
             }
     }
+
     // TODO add args to read_csv
     pub enum Relation with Eq, ToString {
         case Table(String)
         case Project1(List[Expression])
         case Project(List[Expression], Relation)
         case Filter(Relation, Expression)
+        case Limit(Relation, Int64)
+        case Offset(Relation, Int64)
+        case Cross(Relation, Relation)
+        case Join(Relation, Relation, JoinType)     // TODO conditions
         case ReadCSV(String)
     }
 
@@ -115,16 +121,49 @@ mod IR.DuckIR {
         pub override def pPrintPrec(d: PrettyLevel, p: Int32, x: Relation): Doc = 
             def ppSel(es) = text("SELECT") <<>> intersperse(text(", "), List.map(e -> Pretty.pPrintPrec(d, p, e), es));
             match x {
-                case Relation.Table(name)               => text(name)
-                case Relation.Project1(es)              => ppSel(es)
-                case Relation.Project(es, reln)         => 
+                case Relation.Table(name)                   => text(name)
+                case Relation.Project1(es)                  => ppSel(es)
+                case Relation.Project(es, reln)             => 
                     ppSel(es) <<>> text("FROM") <<>> Pretty.pPrintPrec(d, p, reln)
-                case Relation.Filter(reln, e)           => 
+                
+                case Relation.Filter(reln, e)               => 
                     Pretty.pPrintPrec(d, p, reln) <<>> text("WHERE") <<>> parens(Pretty.pPrintPrec(d, p, e))
-                case Relation.ReadCSV(path)             => ppFunApp("read_csv", List#{squotes(text(path))})
+                
+                case Relation.Limit(reln, n)                => 
+                    Pretty.pPrintPrec(d, p, reln) <<>> text("LIMIT") <<>> PrettyPrint.int64(n)
+
+                case Relation.Offset(reln, offset)          => 
+                    Pretty.pPrintPrec(d, p, reln) <<>> text("OFFSET") <<>> PrettyPrint.int64(offset)
+
+                case Relation.Cross(reln1, reln2)           => 
+                    Pretty.pPrintPrec(d, p, reln1) <<>> text("CROSS") <<>> text("JOIN") <<>> Pretty.pPrintPrec(d, p, reln2) 
+
+                case Relation.Join(reln1, reln2, jtype)     => 
+                    Pretty.pPrintPrec(d, p, reln1) <<>> Pretty.pPrint(jtype) <<>> Pretty.pPrintPrec(d, p, reln2) 
+
+                case Relation.ReadCSV(path)                 => ppFunApp("read_csv", List#{squotes(text(path))})
             }
     }
 
+    pub enum JoinType with Eq, ToString {
+        case LEFT
+        case RIGHT
+        case OUTER
+        case INNER
+        case ANTI
+        case SEMI
+    }
+
+    instance Pretty[JoinType] {
+        pub override def pPrint(x: JoinType): Doc = match x {
+            case JoinType.LEFT      => text("LEFT")
+            case JoinType.RIGHT     => text("RIGHT")
+            case JoinType.OUTER     => text("OUTER")
+            case JoinType.INNER     => text("INNER")
+            case JoinType.ANTI      => text("ANTI")
+            case JoinType.SEMI      => text("SEMI")
+        }
+    }
 
     pub enum Expression with Eq, ToString {
         case UnaryExpression(UnaryOperator, Expression)
@@ -139,7 +178,6 @@ mod IR.DuckIR {
         case StarExpression(List[String])
         case FunctionExpression(String, List[Expression])
     }
-
 
     def ppWhenPrec(d: PrettyLevel, p: Int32, w: (Expression, Expression)): Doc = 
         let (e1, e2) = w;
