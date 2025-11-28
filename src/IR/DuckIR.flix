@@ -110,6 +110,10 @@ mod IR.DuckIR {
         case Offset(Relation, Int64)
         case Cross(Relation, Relation)
         case Join(Relation, Relation, JoinType)     // TODO conditions
+        case Sort(Relation, List[Expression])
+        case Union(Relation, Relation)
+        case Except(Relation, Relation)
+        case Intersect(Relation, Relation)
         case ReadCSV(String)
     }
 
@@ -136,10 +140,23 @@ mod IR.DuckIR {
                     Pretty.pPrintPrec(d, p, reln) <<>> text("OFFSET") <<>> PrettyPrint.int64(offset)
 
                 case Relation.Cross(reln1, reln2)           => 
-                    Pretty.pPrintPrec(d, p, reln1) <<>> text("CROSS") <<>> text("JOIN") <<>> Pretty.pPrintPrec(d, p, reln2) 
+                    Pretty.pPrintPrec(d, p, reln1) <<>> text("CROSS JOIN") <<>> Pretty.pPrintPrec(d, p, reln2) 
 
                 case Relation.Join(reln1, reln2, jtype)     => 
                     Pretty.pPrintPrec(d, p, reln1) <<>> Pretty.pPrint(jtype) <<>> Pretty.pPrintPrec(d, p, reln2) 
+
+                case Relation.Sort(reln, es)     => 
+                    Pretty.pPrintPrec(d, p, reln) <<>> text("ORDER BY") 
+                        <<>> intersperse(text(", "), List.map(e -> Pretty.pPrintPrec(d, p, e), es)) 
+
+                case Relation.Union(reln1, reln2)           => 
+                    Pretty.pPrintPrec(d, p, reln1) <<>> text("UNION") <<>> Pretty.pPrintPrec(d, p, reln2) 
+
+                case Relation.Except(reln1, reln2)          => 
+                    Pretty.pPrintPrec(d, p, reln1) <<>> text("EXCEPT") <<>> Pretty.pPrintPrec(d, p, reln2) 
+
+                case Relation.Intersect(reln1, reln2)       => 
+                    Pretty.pPrintPrec(d, p, reln1) <<>> text("INTERSECT") <<>> Pretty.pPrintPrec(d, p, reln2) 
 
                 case Relation.ReadCSV(path)                 => ppFunApp("read_csv", List#{squotes(text(path))})
             }
