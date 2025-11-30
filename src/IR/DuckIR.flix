@@ -25,6 +25,12 @@ mod IR.DuckIR {
     use Text.PrettyPrint.{empty, int32, squotes, encloseSep, text, char, comma, 
         intersperse, lparen, rparen, parens, tupled, vcat, nest}
     
+    // Use PostgreSQL operator preferences...
+    // https://www.postgresql.org/docs/18/sql-syntax-lexical.html
+
+    def pparen(prec1: Int32, prec2: Int32, x: Doc): Doc = if (prec1 <= prec2) parens(x) else x
+
+
     pub enum Type with Eq, ToString {
         case BIGINT
         case BIT
@@ -55,6 +61,8 @@ mod IR.DuckIR {
         case VARCHAR
         case LIST(Type)
         case STRUCT(List[(String, Type)])
+        case MAP(Type, Type)
+        case UNION(List[(String, Type)])
     }
 
     def ppStructFieldPrec(d: PrettyLevel, p: Int32, w: (String, Type)): Doc = 
@@ -97,6 +105,12 @@ mod IR.DuckIR {
                 
                 case Type.STRUCT(xs)            =>
                     text("STRUCT") ++ tupled(List.map(t -> ppStructFieldPrec(d, p, t), xs))
+
+                case Type.MAP(tykey, tyval)     =>
+                    text("MAP") ++ tupled(List#{Pretty.pPrintPrec(d, p, tykey), Pretty.pPrintPrec(d, p, tyval)})
+
+                case Type.UNION(xs)             =>
+                    text("UNION") ++ tupled(List.map(t -> ppStructFieldPrec(d, p, t), xs))
             }
     }
 
@@ -215,7 +229,9 @@ mod IR.DuckIR {
                 Pretty.pPrintPrec(d, p, e1) <<>> Pretty.pPrint(op) <<>> Pretty.pPrintPrec(d, p, e2) 
 
             case Expression.CastExpression(e, ty)               => 
-                text("CAST") ++ parens(Pretty.pPrintPrec(d, p, e) <<>> text ("AS") <<>> Pretty.pPrintPrec(d, p, ty))
+                pparen(30, p, 
+                    text("CAST") ++ parens(Pretty.pPrintPrec(d, p, e) <<>> text ("AS") <<>> Pretty.pPrintPrec(d, p, ty))
+                )
 
             case Expression.CaseExpression(xs, oe)              => {
                 let body = match oe { 
@@ -226,12 +242,19 @@ mod IR.DuckIR {
             }
             case Expression.Constant(c)                         => Pretty.pPrint(c)
             case Expression.ColumnExpression(name)              => text(name)
-            case Expression.ComparisonExpression(op, e1, e2)    => 
-                Pretty.pPrintPrec(d, p, e1) <<>> Pretty.pPrint(op) <<>> Pretty.pPrintPrec(d, p, e2) 
+            case Expression.ComparisonExpression(op, e1, e2)    => {
+                let opPrec = comparisonPrec(op);
+                pparen(opPrec, p,
+                        Pretty.pPrintPrec(d, p, e1) <<>> Pretty.pPrint(op) <<>> Pretty.pPrintPrec(d, p, e2) 
+                )
+            }
+                
 
             case Expression.BetweenExpression(op, e1, ex, ey)    => 
-                Pretty.pPrintPrec(d, p, e1) <<>> Pretty.pPrint(op) <<>> Pretty.pPrintPrec(d, p, ex) 
-                    <<>> text("AND") <<>> Pretty.pPrintPrec(d, p, ey)
+                pparen(12, p,
+                    Pretty.pPrintPrec(d, p, e1) <<>> Pretty.pPrint(op) <<>> Pretty.pPrintPrec(d, p, ex) 
+                        <<>> text("AND") <<>> Pretty.pPrintPrec(d, p, ey)
+                )
 
             case Expression.SetAlias(e, name)                   => 
                 Pretty.pPrintPrec(d, p, e) <<>> text("AS") <<>> text(name)
@@ -309,6 +332,15 @@ mod IR.DuckIR {
         case GreaterThanOrEqualTo
         case LessThan
         case LessThanOrEqualTo
+    }
+
+    def comparisonPrec(x: ComparisonOperator): Int32 = match x {
+        case ComparisonOperator.Equal                   => 10
+        case ComparisonOperator.NotEqual                => 10
+        case ComparisonOperator.GreaterThan             => 10
+        case ComparisonOperator.GreaterThanOrEqualTo    => 10
+        case ComparisonOperator.LessThan                => 10
+        case ComparisonOperator.LessThanOrEqualTo       => 10
     }
 
     instance Pretty[ComparisonOperator] {
