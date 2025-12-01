@@ -25,8 +25,7 @@ mod IR.DuckIR {
     use Text.PrettyPrint.{empty, int32, squotes, encloseSep, text, char, comma, 
         intersperse, lparen, rparen, parens, tupled, vcat, nest}
     
-    // Use PostgreSQL operator preferences...
-    // https://www.postgresql.org/docs/18/sql-syntax-lexical.html
+    // DuckDB has precedence levels in the PEG grammar
 
     def pparen(prec1: Int32, prec2: Int32, x: Doc): Doc = if (prec1 <= prec2) parens(x) else x
 
@@ -201,6 +200,8 @@ mod IR.DuckIR {
         case BinaryExpression(BinaryOperator, Expression, Expression)
         case CastExpression(Expression, Type)
         case CaseExpression(List[(Expression, Expression)], Option[Expression])
+        case CollateExpression(Expression, String)
+        case ConjunctionExpression(ConjunctionOperator, Expression, Expression)
         case Constant(Constant)
         case ColumnExpression(String)
         case ComparisonExpression(ComparisonOperator, Expression, Expression)
@@ -223,13 +224,12 @@ mod IR.DuckIR {
                 case UnaryOperator.Negate           => Pretty.pPrint(op) ++ Pretty.pPrintPrec(d, p, e) 
                 case UnaryOperator.IsNull           => Pretty.pPrintPrec(d, p, e) <<>> Pretty.pPrint(op)
                 case UnaryOperator.IsNotNull        => Pretty.pPrintPrec(d, p, e) <<>> Pretty.pPrint(op)
-                case UnaryOperator.Not              => Pretty.pPrint(op) ++ Pretty.pPrintPrec(d, p, e) 
             }
             case Expression.BinaryExpression(op, e1, e2)        => 
                 Pretty.pPrintPrec(d, p, e1) <<>> Pretty.pPrint(op) <<>> Pretty.pPrintPrec(d, p, e2) 
 
             case Expression.CastExpression(e, ty)               => 
-                pparen(30, p, 
+                pparen(16, p, 
                     text("CAST") ++ parens(Pretty.pPrintPrec(d, p, e) <<>> text ("AS") <<>> Pretty.pPrintPrec(d, p, ty))
                 )
 
@@ -240,6 +240,20 @@ mod IR.DuckIR {
                 };
                 text("CASE") <!> nest(4, vcat(body)) <!> text("END")
             }
+            
+            case Expression.CollateExpression(e, name)          => {
+                pparen(13, p,
+                        Pretty.pPrintPrec(d, p, e) <<>> text("COLLATE") <<>> text(name)
+                )
+            }
+
+            case Expression.ConjunctionExpression(op, e1, e2)   => {
+                let opPrec = conjunctionPrec(op);
+                pparen(opPrec, p,
+                        Pretty.pPrintPrec(d, p, e1) <<>> Pretty.pPrint(op) <<>> Pretty.pPrintPrec(d, p, e2) 
+                )
+            }
+
             case Expression.Constant(c)                         => Pretty.pPrint(c)
             case Expression.ColumnExpression(name)              => text(name)
             case Expression.ComparisonExpression(op, e1, e2)    => {
@@ -251,7 +265,7 @@ mod IR.DuckIR {
                 
 
             case Expression.BetweenExpression(op, e1, ex, ey)    => 
-                pparen(12, p,
+                pparen(7, p,
                     Pretty.pPrintPrec(d, p, e1) <<>> Pretty.pPrint(op) <<>> Pretty.pPrintPrec(d, p, ex) 
                         <<>> text("AND") <<>> Pretty.pPrintPrec(d, p, ey)
                 )
@@ -282,11 +296,11 @@ mod IR.DuckIR {
         }
     }
 
+    // TODO - remove Negate is an operator Function Expression
     pub enum UnaryOperator with Eq, ToString {
         case Negate
         case IsNull
         case IsNotNull
-        case Not
     }
 
     instance Pretty[UnaryOperator] {
@@ -294,7 +308,6 @@ mod IR.DuckIR {
             case UnaryOperator.Negate       => char('-')
             case UnaryOperator.IsNull       => text("IS NULL")
             case UnaryOperator.IsNotNull    => text("IS NOT NULL")
-            case UnaryOperator.Not          => text("NOT")
         }
     }
 
@@ -307,8 +320,6 @@ mod IR.DuckIR {
         case FloorDivision
         case Modulo
         case Power
-        case And
-        case Or
     }
 
     instance Pretty[BinaryOperator] {
@@ -320,8 +331,27 @@ mod IR.DuckIR {
             case BinaryOperator.FloorDivision   => text("//")
             case BinaryOperator.Modulo          => char('%')
             case BinaryOperator.Power           => text("**")
-            case BinaryOperator.And             => text("AND")
-            case BinaryOperator.Or              => text("OR")
+        }
+    }
+
+    pub enum ConjunctionOperator with Eq, ToString {
+        case Or
+        case And
+        case Not
+    }
+
+
+    def conjunctionPrec(x: ConjunctionOperator): Int32 = match x {
+        case ConjunctionOperator.Or     => 1
+        case ConjunctionOperator.And    => 2
+        case ConjunctionOperator.Not    => 3
+    }
+
+    instance Pretty[ConjunctionOperator] {
+        pub override def pPrint(x: ConjunctionOperator): Doc = match x {
+            case ConjunctionOperator.Or     => text("OR")
+            case ConjunctionOperator.And    => text("AND")
+            case ConjunctionOperator.Not    => text("NOT")
         }
     }
 
@@ -335,12 +365,12 @@ mod IR.DuckIR {
     }
 
     def comparisonPrec(x: ComparisonOperator): Int32 = match x {
-        case ComparisonOperator.Equal                   => 10
-        case ComparisonOperator.NotEqual                => 10
-        case ComparisonOperator.GreaterThan             => 10
-        case ComparisonOperator.GreaterThanOrEqualTo    => 10
-        case ComparisonOperator.LessThan                => 10
-        case ComparisonOperator.LessThanOrEqualTo       => 10
+        case ComparisonOperator.Equal                   => 6
+        case ComparisonOperator.NotEqual                => 6
+        case ComparisonOperator.GreaterThan             => 6
+        case ComparisonOperator.GreaterThanOrEqualTo    => 6
+        case ComparisonOperator.LessThan                => 6
+        case ComparisonOperator.LessThanOrEqualTo       => 6
     }
 
     instance Pretty[ComparisonOperator] {
