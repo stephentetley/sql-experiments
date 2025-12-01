@@ -21,13 +21,17 @@ mod IR.DuckIR {
     use Text.PrettyPrint
     use Text.PrettyLevel
     use Text.PrettyPrint.Doc
-    use Text.PrettyPrint.{<<>>, <!>}
-    use Text.PrettyPrint.{empty, int32, squotes, encloseSep, text, char, comma, 
+    use Text.PrettyPrint.{<<>>, <^>, <!>}
+    use Text.PrettyPrint.{empty, int32, squotes, encloseSep, text, char, comma, dot,
         intersperse, lparen, rparen, parens, tupled, vcat, nest}
     
     // DuckDB has precedence levels in the PEG grammar
 
-    def pparen(prec1: Int32, prec2: Int32, x: Doc): Doc = if (prec1 <= prec2) parens(x) else x
+    def ppParen(prec1: Int32, prec2: Int32, x: Doc): Doc = if (prec1 <= prec2) parens(x) else x
+
+    def ppOpt(b: Bool, x: Doc): Doc = if (b) x else empty()
+
+    pub type alias ColId = String
 
 
     pub enum Type with Eq, ToString {
@@ -113,6 +117,18 @@ mod IR.DuckIR {
             }
     }
 
+    // TODO 
+    pub enum SelectStatement with Eq, ToString {
+        case SelectStatement(Relation)
+    }
+
+    instance Pretty[SelectStatement] {
+        pub override def pPrintPrec(d: PrettyLevel, p: Int32, x: SelectStatement): Doc = match x {
+            case SelectStatement.SelectStatement(reln) => Pretty.pPrintPrec(d, p, reln)
+        }
+    }
+
+
     // TODO add args to read_csv
     pub enum Relation with Eq, ToString {
         case Table(String)
@@ -196,18 +212,22 @@ mod IR.DuckIR {
     }
 
     pub enum Expression with Eq, ToString {
+        // Single Expression
+        case Literal(Literal)
+        case Parameter(Parameter)
+        case SubqueryExpression(Bool, Bool, SelectStatement)
+        case CaseExpression(List[(Expression, Expression)], Option[Expression])
+        case StarExpression(List[ColId], List[String], List[(Expression, String)], List[(String, String)])
         case UnaryExpression(UnaryOperator, Expression)
         case BinaryExpression(BinaryOperator, Expression, Expression)
         case CastExpression(Expression, Type)
-        case CaseExpression(List[(Expression, Expression)], Option[Expression])
         case CollateExpression(Expression, String)
         case ConjunctionExpression(ConjunctionOperator, Expression, Expression)
-        case Constant(Constant)
         case ColumnExpression(String)
         case ComparisonExpression(ComparisonOperator, Expression, Expression)
         case BetweenExpression(BetweenOperator, Expression, Expression, Expression)
         case SetAlias(Expression, String)
-        case StarExpression(List[String])
+        
         case FunctionExpression(String, List[Expression])
     }
 
@@ -217,21 +237,31 @@ mod IR.DuckIR {
 
     def ppElsePrec(d: PrettyLevel, p: Int32, e: Expression): Doc =
         text("ELSE") <<>> Pretty.pPrintPrec(d, p, e) 
+    
+    def ppTableName(xs: List[String]): Doc = intersperse(dot(), List.map(text, xs))
+
+    def ppExcludeList(xs: List[String]): Doc = 
+        ppOpt(xs != Nil, 
+                text("EXCLUDE") <<>> tupled(List.map(text, xs))
+        )
+
+    def ppReplaceListPrec(d: PrettyLevel, p: Int32, xs: List[(Expression, String)]): Doc = 
+        ppOpt(xs != Nil, 
+                text("REPLACE") <<>> tupled(List.map(match(x, y) -> Pretty.pPrintPrec(d, p, x) <<>> text("AS") <<>> text(y), xs))
+        )
+
+    def ppRenameList(xs: List[(String, String)]): Doc = 
+        ppOpt(xs != Nil, 
+            text("RENAME") <<>> tupled(List.map(match(x,y) -> text(x) <<>> text("AS") <<>> text(y), xs))
+        )
 
     instance Pretty[Expression] {
         pub override def pPrintPrec(d: PrettyLevel, p: Int32, x: Expression): Doc = match x {
-            case Expression.UnaryExpression(op, e)              => match op {
-                case UnaryOperator.Negate           => Pretty.pPrint(op) ++ Pretty.pPrintPrec(d, p, e) 
-                case UnaryOperator.IsNull           => Pretty.pPrintPrec(d, p, e) <<>> Pretty.pPrint(op)
-                case UnaryOperator.IsNotNull        => Pretty.pPrintPrec(d, p, e) <<>> Pretty.pPrint(op)
-            }
-            case Expression.BinaryExpression(op, e1, e2)        => 
-                Pretty.pPrintPrec(d, p, e1) <<>> Pretty.pPrint(op) <<>> Pretty.pPrintPrec(d, p, e2) 
+            case Expression.Literal(v)                          => Pretty.pPrint(v)
+            case Expression.Parameter(i)                        => Pretty.pPrint(i)
 
-            case Expression.CastExpression(e, ty)               => 
-                pparen(16, p, 
-                    text("CAST") ++ parens(Pretty.pPrintPrec(d, p, e) <<>> text ("AS") <<>> Pretty.pPrintPrec(d, p, ty))
-                )
+            case Expression.SubqueryExpression(bNot, bExists, stmt) => 
+                ppOpt(bNot, text("NOT")) <^> ppOpt(bExists, text("EXISTS")) <^> Pretty.pPrintPrec(d, p, stmt) 
 
             case Expression.CaseExpression(xs, oe)              => {
                 let body = match oe { 
@@ -241,31 +271,48 @@ mod IR.DuckIR {
                 text("CASE") <!> nest(4, vcat(body)) <!> text("END")
             }
             
+            case Expression.StarExpression(tableName, exls, reps, renames) => 
+                ppTableName(tableName) ++ ppOpt(tableName != Nil, char('.')) ++ char('*') 
+                    <^> ppExcludeList(exls) <^> ppReplaceListPrec(d, p, reps) <^> ppRenameList(renames)
+
+            case Expression.UnaryExpression(op, e)              => match op {
+                case UnaryOperator.Negate           => Pretty.pPrint(op) ++ Pretty.pPrintPrec(d, p, e) 
+                case UnaryOperator.IsNull           => Pretty.pPrintPrec(d, p, e) <<>> Pretty.pPrint(op)
+                case UnaryOperator.IsNotNull        => Pretty.pPrintPrec(d, p, e) <<>> Pretty.pPrint(op)
+            }
+
+            case Expression.BinaryExpression(op, e1, e2)        => 
+                Pretty.pPrintPrec(d, p, e1) <<>> Pretty.pPrint(op) <<>> Pretty.pPrintPrec(d, p, e2) 
+
+            case Expression.CastExpression(e, ty)               => 
+                ppParen(16, p, 
+                    text("CAST") ++ parens(Pretty.pPrintPrec(d, p, e) <<>> text ("AS") <<>> Pretty.pPrintPrec(d, p, ty))
+                )
+            
             case Expression.CollateExpression(e, name)          => {
-                pparen(13, p,
+                ppParen(13, p,
                         Pretty.pPrintPrec(d, p, e) <<>> text("COLLATE") <<>> text(name)
                 )
             }
 
             case Expression.ConjunctionExpression(op, e1, e2)   => {
                 let opPrec = conjunctionPrec(op);
-                pparen(opPrec, p,
+                ppParen(opPrec, p,
                         Pretty.pPrintPrec(d, p, e1) <<>> Pretty.pPrint(op) <<>> Pretty.pPrintPrec(d, p, e2) 
                 )
             }
 
-            case Expression.Constant(c)                         => Pretty.pPrint(c)
             case Expression.ColumnExpression(name)              => text(name)
             case Expression.ComparisonExpression(op, e1, e2)    => {
                 let opPrec = comparisonPrec(op);
-                pparen(opPrec, p,
+                ppParen(opPrec, p,
                         Pretty.pPrintPrec(d, p, e1) <<>> Pretty.pPrint(op) <<>> Pretty.pPrintPrec(d, p, e2) 
                 )
             }
                 
 
             case Expression.BetweenExpression(op, e1, ex, ey)    => 
-                pparen(7, p,
+                ppParen(7, p,
                     Pretty.pPrintPrec(d, p, e1) <<>> Pretty.pPrint(op) <<>> Pretty.pPrintPrec(d, p, ex) 
                         <<>> text("AND") <<>> Pretty.pPrintPrec(d, p, ey)
                 )
@@ -273,26 +320,35 @@ mod IR.DuckIR {
             case Expression.SetAlias(e, name)                   => 
                 Pretty.pPrintPrec(d, p, e) <<>> text("AS") <<>> text(name)
 
-            case Expression.StarExpression(Nil)                 => char('*')
-            case Expression.StarExpression(xs)                  => 
-                char('*') <<>> text("EXCLUDE") <<>> tupled(List.map(text, xs))
-
             case Expression.FunctionExpression(name, es)      => 
                 text(name) ++ tupled(List.map(e -> Pretty.pPrintPrec(d, p, e), es)) 
         }
     }
 
-    pub enum Constant with Eq, ToString  {
-        case ConstantNull
-        case ConstantVarchar(String)
-        case ConstantInteger(Int32)
+    pub enum Parameter with Eq, ToString  {
+        case NumberedParameter(Int32)
+        case ColLabelParameter(String)
     }
 
-    instance Pretty[Constant] {
-        pub override def pPrint(x: Constant): Doc = match x {
-            case Constant.ConstantNull          => text("NULL")
-            case Constant.ConstantVarchar(s)    => squotes(text(s))
-            case Constant.ConstantInteger(i)    => int32(i)
+    instance Pretty[Parameter] {
+        pub override def pPrint(x: Parameter): Doc = match x {
+            case Parameter.NumberedParameter(i) => text("$${i}")
+            case Parameter.ColLabelParameter(s) => text("$${s}")
+        }
+    }
+
+
+    pub enum Literal with Eq, ToString  {
+        case NULL
+        case Varchar(String)
+        case Integer(Int32)
+    }
+
+    instance Pretty[Literal] {
+        pub override def pPrint(x: Literal): Doc = match x {
+            case Literal.NULL          => text("NULL")
+            case Literal.Varchar(s)    => squotes(text(s))
+            case Literal.Integer(i)    => int32(i)
         }
     }
 
