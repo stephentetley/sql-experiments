@@ -15,7 +15,7 @@
  */
 
 
-mod IR.DuckIR {
+pub mod IR.DuckIR {
 
     use Text.Pretty
     use Text.PrettyPrint
@@ -24,6 +24,7 @@ mod IR.DuckIR {
     use Text.PrettyPrint.{<<>>, <^>, <!>}
     use Text.PrettyPrint.{empty, int32, squotes, encloseSep, text, char, comma, dot,
         intersperse, lparen, rparen, parens, tupled, vcat, nest}
+
     
     // DuckDB has precedence levels in the PEG grammar
 
