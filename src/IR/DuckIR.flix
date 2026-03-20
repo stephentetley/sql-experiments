@@ -17,16 +17,17 @@
 
 pub mod IR.DuckIR {
 
-    use Text.Pretty
-    use Text.PrettyPrint
-    use Text.PrettyLevel
-    use Text.PrettyPrint.Doc
-    use Text.PrettyPrint.{<<>>, <^>, <!>}
-    use Text.PrettyPrint.{empty, int32, squotes, encloseSep, text, char, comma, dot,
+    use FlixPretty.Doc
+    use FlixPretty.PrettyClass.Pretty
+    use FlixPretty.PrettyClass.PrettyLevel
+    
+    use FlixPretty.{<<>>, <^>, <!>}
+    use FlixPretty.{empty, int32, squotes, encloseSep, text, char, comma, dot,
         intersperse, lparen, rparen, parens, tupled, vcat, nest}
 
     
     // DuckDB has precedence levels in the PEG grammar
+    // file - inlined_grammar.gram
 
     def ppParen(prec1: Int32, prec2: Int32, x: Doc): Doc = if (prec1 <= prec2) parens(x) else x
 
@@ -164,10 +165,10 @@ pub mod IR.DuckIR {
                     Pretty.pPrintPrec(d, p, reln) <<>> text("WHERE") <<>> parens(Pretty.pPrintPrec(d, p, e))
                 
                 case Relation.Limit(reln, n)                => 
-                    Pretty.pPrintPrec(d, p, reln) <<>> text("LIMIT") <<>> PrettyPrint.int64(n)
+                    Pretty.pPrintPrec(d, p, reln) <<>> text("LIMIT") <<>> FlixPretty.int64(n)
 
                 case Relation.Offset(reln, offset)          => 
-                    Pretty.pPrintPrec(d, p, reln) <<>> text("OFFSET") <<>> PrettyPrint.int64(offset)
+                    Pretty.pPrintPrec(d, p, reln) <<>> text("OFFSET") <<>> FlixPretty.int64(offset)
 
                 case Relation.Cross(reln1, reln2)           => 
                     Pretty.pPrintPrec(d, p, reln1) <<>> text("CROSS JOIN") <<>> Pretty.pPrintPrec(d, p, reln2) 

@@ -15,12 +15,12 @@
  */
 
 
-mod IR.SQLIR {
+pub mod IR.SQLIR {
 
-    use Text.Pretty
-    use Text.PrettyPrint.Doc
-    use Text.PrettyPrint.{<<>>, empty, int32, squotes, encloseSep, text, comma, lparen, rparen, conditionalParens}
-
+    use FlixPretty.Doc
+    use FlixPretty.{<<>>, empty, int32, squotes, encloseSep, text, comma, lparen, rparen, conditionalParens}
+    use FlixPretty.PrettyClass.Pretty
+    
     pub enum Query with Eq, ToString {
         case Select(List[(Term, String)], List[(Table, String)], Condition)
         case SelectStar(List[(Table, String)], Condition)

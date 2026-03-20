@@ -79,13 +79,6 @@ mod Cooper.Phase.Normalize {
 
             // IF-RECORD (todo)
 
-            // IF-SPLIT (this typechecks but doesn't work as we don't know the proper type of the empty bags)
-            // Also - should we have an explicit `not` in the source language?
-            case Term.IfThenElse(_, _, Term.BagEmpty)                        => k(t1)
-            case Term.IfThenElse(b, m, n)                                       => 
-                k(Term.BagUnion(Term.IfThenElse(b, m, Term.BagEmpty), 
-                                Term.IfThenElse(Term.Prim("not", b :: Nil), n, Term.BagEmpty)))
-
             // IF-ZERO
             case Term.IfThenElse(_, Term.BagEmpty, Term.BagEmpty)               => k(Term.BagEmpty)
 
@@ -97,6 +90,13 @@ mod Cooper.Phase.Normalize {
             case Term.IfThenElse(b, Term.BagUnion(m, n), Term.BagEmpty)         => 
                 k(Term.BagUnion(Term.IfThenElse(b, m, Term.BagEmpty), 
                                 Term.IfThenElse(b, n, Term.BagEmpty)))
+            
+            // IF-SPLIT (this typechecks but doesn't work as we don't know the proper type of the empty bags)
+            // Also - should we have an explicit `not` in the source language?
+            case Term.IfThenElse(_, _, Term.BagEmpty)                        => k(t1)
+            case Term.IfThenElse(b, m, n)                                       => 
+                k(Term.BagUnion(Term.IfThenElse(b, m, Term.BagEmpty), 
+                                Term.IfThenElse(Term.Prim("not", b :: Nil), n, Term.BagEmpty)))
 
             // EMPTY-FLATTEN
             // Does this need a fresh variable for x?
