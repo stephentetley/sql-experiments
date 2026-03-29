@@ -17,6 +17,7 @@
 
 pub mod DuckAST.JsonExtra { 
 
+    use InteropJson.JsonObject.JsonObject
     use InteropJson.JsonString.JsonString
     use InteropJson.JsonValue.JsonValue
 
@@ -24,10 +25,16 @@ pub mod DuckAST.JsonExtra {
     import jakarta.json.{JsonValue => JJsonValue}
 
     pub def createJsonString(s: String): JsonString = 
-        JsonString.JsonString(unsafe IO { Json.createValue(s)})
+        JsonString.JsonString(unsafe IO { Json.createValue(s) })
 
     pub def createJsonStringValue(s: String): JsonValue = 
-        let value: JJsonValue = checked_cast(unsafe IO { Json.createValue(s)});
+        let value: JJsonValue = checked_cast(unsafe IO { Json.createValue(s) });
+        JsonValue.JsonValue(value)
+
+    // Don't add(?) - shouldn't have created a JsonObject in the first place...
+    pub def jsonObjectToJsonValue(o: JsonObject): JsonValue =
+        let JsonObject.JsonObject(o1) = o;
+        let value: JJsonValue = checked_cast(o1);
         JsonValue.JsonValue(value)
 
 }

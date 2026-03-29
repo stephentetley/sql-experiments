@@ -18,6 +18,8 @@
 pub mod DuckAST.Syntax {
 
     use InteropJson.JsonValue.JsonValue
+    use InteropJson.JsonObjectBuilder.JsonObjectBuilder
+
 
     use FlixPretty.Doc
     use FlixPretty.PrettyClass.Pretty
@@ -29,6 +31,10 @@ pub mod DuckAST.Syntax {
 
     pub enum TODO with Eq, ToString { case TODO }
 
+    pub def toJsonTODO(x: TODO): JsonValue = match x {
+        case _          => DuckAST.JsonExtra.createJsonStringValue("TODO")
+    }
+
     pub enum QueryNode with Eq, ToString {
         case CTENode
         case RecursiveCTENode
@@ -37,7 +43,26 @@ pub mod DuckAST.Syntax {
         case SetOperationNode
     }
 
+    pub def toJsonQueryNode(x: QueryNode): JsonValue = match x {
+        case _          => DuckAST.JsonExtra.createJsonStringValue("TODO")
+    }
+
+
     pub type alias QueryNodeProperties = (QueryNodeType, List[ResultModifier], TODO)
+
+    // Does evalJsonObjectBuilder need to return a Result?
+    pub def toJsonQueryNodeProperties(x: QueryNodeProperties): Result[String, JsonValue] = region rc {
+        match x {
+            case (ty, _, _)          =>
+                let ans = run {
+                    JsonObjectBuilder.addJsonValue(name = "type", toJsonQueryNodeType(ty));
+                    JsonObjectBuilder.addJsonValue(name = "modifiers", DuckAST.JsonExtra.createJsonStringValue("TODO"));
+                    JsonObjectBuilder.addJsonValue(name = "???", DuckAST.JsonExtra.createJsonStringValue("TODO"));
+                    ()
+                } with InteropJson.JsonObjectBuilder.evalJsonObjectBuilder(rc);
+                Result.map(DuckAST.JsonExtra.jsonObjectToJsonValue, ans)
+        }
+    }
 
     pub enum QueryNodeType with Eq, ToString, Order {
         case SELECT_NODE
