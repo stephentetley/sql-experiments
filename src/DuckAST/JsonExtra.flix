@@ -17,25 +17,35 @@
 
 pub mod DuckAST.JsonExtra { 
 
-    use InteropJson.JsonObject.JsonObject
-    use InteropJson.JsonString.JsonString
+    
     use InteropJson.JsonValue.JsonValue
+    use InteropJson.JsonValue.JsonArray
+    use InteropJson.JsonValue.JsonObject
+    use InteropJson.JsonArrayBuilder.BuildJsonArray
+    use InteropJson.JsonObjectBuilder.BuildJsonObject
 
     import jakarta.json.Json
     import jakarta.json.{JsonValue => JJsonValue}
 
-    pub def createJsonString(s: String): JsonString = 
-        JsonString.JsonString(unsafe IO { Json.createValue(s) })
 
-    pub def createJsonStringValue(s: String): JsonValue = 
-        let value: JJsonValue = checked_cast(unsafe IO { Json.createValue(s) });
-        JsonValue.JsonValue(value)
+    // TODO - should have a ToJson instance for JsonArray
+    pub def jsonArrayToJson(x: JsonArray): JsonValue =
+        let JsonArray.JsonArray(x1) = x;
+        let jsonvalue: JJsonValue = checked_cast(x1);
+        JsonValue.JsonValue(jsonvalue)
 
-    // Don't add(?) - shouldn't have created a JsonObject in the first place...
-    pub def jsonObjectToJsonValue(o: JsonObject): JsonValue =
-        let JsonObject.JsonObject(o1) = o;
-        let value: JJsonValue = checked_cast(o1);
-        JsonValue.JsonValue(value)
+    // TODO - should have a ToJson instance for JsonObject
+    pub def jsonObjectToJson(x: JsonObject): JsonValue =
+        let JsonObject.JsonObject(x1) = x;
+        let jsonvalue: JJsonValue = checked_cast(x1);
+        JsonValue.JsonValue(jsonvalue)
+
+    pub def evalBuildJsonArrayValue(rc: Region[r], f: Unit -> a \ ef): Result[String, JsonValue] \ (ef - BuildJsonArray + r) =
+        InteropJson.JsonArrayBuilder.evalBuildJsonArray(rc, f) |> Result.map(jsonArrayToJson)
+
+    pub def evalBuildJsonObjectValue(rc: Region[r], f: Unit -> a \ ef): Result[String, JsonValue] \ (ef - BuildJsonObject + r) =
+        InteropJson.JsonObjectBuilder.evalBuildJsonObject(rc, f) |> Result.map(jsonObjectToJson)
+
 
 }
 

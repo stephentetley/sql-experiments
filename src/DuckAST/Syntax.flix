@@ -18,8 +18,8 @@
 pub mod DuckAST.Syntax {
 
     use InteropJson.JsonValue.JsonValue
-    use InteropJson.JsonObjectBuilder.JsonObjectBuilder
-
+    use InteropJson.JsonObjectBuilder.BuildJsonObject
+    use InteropJson.ToJson
 
     use FlixPretty.Doc
     use FlixPretty.PrettyClass.Pretty
@@ -31,8 +31,10 @@ pub mod DuckAST.Syntax {
 
     pub enum TODO with Eq, ToString { case TODO }
 
-    pub def toJsonTODO(x: TODO): JsonValue = match x {
-        case _          => DuckAST.JsonExtra.createJsonStringValue("TODO")
+    instance ToJson[TODO] {
+        pub def toJson(x: TODO): JsonValue = match x {
+            case _          => ToJson.toJson("TODO")
+        }
     }
 
     pub enum QueryNode with Eq, ToString {
@@ -44,23 +46,23 @@ pub mod DuckAST.Syntax {
     }
 
     pub def toJsonQueryNode(x: QueryNode): JsonValue = match x {
-        case _          => DuckAST.JsonExtra.createJsonStringValue("TODO")
+        case _          => ToJson.toJson("TODO")
     }
 
-
+    // TODO record?
     pub type alias QueryNodeProperties = (QueryNodeType, List[ResultModifier], TODO)
 
     // Does evalJsonObjectBuilder need to return a Result?
     pub def toJsonQueryNodeProperties(x: QueryNodeProperties): Result[String, JsonValue] = region rc {
         match x {
             case (ty, _, _)          =>
-                let ans = run {
-                    JsonObjectBuilder.addJsonValue(name = "type", toJsonQueryNodeType(ty));
-                    JsonObjectBuilder.addJsonValue(name = "modifiers", DuckAST.JsonExtra.createJsonStringValue("TODO"));
-                    JsonObjectBuilder.addJsonValue(name = "???", DuckAST.JsonExtra.createJsonStringValue("TODO"));
+                run {
+                    BuildJsonObject.addJsonValue(name = "type", ToJson.toJson(ty));
+                    BuildJsonObject.addJsonValue(name = "modifiers", ToJson.toJson("TODO"));
+                    BuildJsonObject.addJsonValue(name = "cte_map", ToJson.toJson("TODO"));
                     ()
-                } with InteropJson.JsonObjectBuilder.evalJsonObjectBuilder(rc);
-                Result.map(DuckAST.JsonExtra.jsonObjectToJsonValue, ans)
+                } with DuckAST.JsonExtra.evalBuildJsonObjectValue(rc)
+                
         }
     }
 
@@ -73,15 +75,16 @@ pub mod DuckAST.Syntax {
         case STATEMENT_NODE
     }
 
-    pub def toJsonQueryNodeType(x: QueryNodeType): JsonValue = match x {
-        case QueryNodeType.SELECT_NODE          => DuckAST.JsonExtra.createJsonStringValue("SELECT_NODE")
-        case QueryNodeType.SET_OPERATION_NODE   => DuckAST.JsonExtra.createJsonStringValue("SET_OPERATION_NODE")
-        case QueryNodeType.BOUND_SUBQUERY_NODE  => DuckAST.JsonExtra.createJsonStringValue("BOUND_SUBQUERY_NODE")
-        case QueryNodeType.RECURSIVE_CTE_NODE   => DuckAST.JsonExtra.createJsonStringValue("RECURSIVE_CTE_NODE")
-        case QueryNodeType.CTE_NODE             => DuckAST.JsonExtra.createJsonStringValue("CTE_NODE")
-        case QueryNodeType.STATEMENT_NODE       => DuckAST.JsonExtra.createJsonStringValue("STATEMENT_NODE")
+    instance ToJson[QueryNodeType] {
+        pub def toJson(x: QueryNodeType): JsonValue = match x {
+            case QueryNodeType.SELECT_NODE          => ToJson.toJson("SELECT_NODE")
+            case QueryNodeType.SET_OPERATION_NODE   => ToJson.toJson("SET_OPERATION_NODE")
+            case QueryNodeType.BOUND_SUBQUERY_NODE  => ToJson.toJson("BOUND_SUBQUERY_NODE")
+            case QueryNodeType.RECURSIVE_CTE_NODE   => ToJson.toJson("RECURSIVE_CTE_NODE")
+            case QueryNodeType.CTE_NODE             => ToJson.toJson("CTE_NODE")
+            case QueryNodeType.STATEMENT_NODE       => ToJson.toJson("STATEMENT_NODE")
+        }
     }
-
 
     pub enum ResultModifier with Eq, ToString {
 	    case ResultModifier(ResultModifierType, TODO)
@@ -92,6 +95,15 @@ pub mod DuckAST.Syntax {
 	    case ORDER_MODIFIER
 	    case DISTINCT_MODIFIER
 	    case LIMIT_PERCENT_MODIFIER
+    }
+
+    instance ToJson[ResultModifierType] {
+        pub def toJson(x: ResultModifierType): JsonValue = match x {
+            case ResultModifierType.LIMIT_MODIFIER          => ToJson.toJson("LIMIT_MODIFIER")
+            case ResultModifierType.ORDER_MODIFIER          => ToJson.toJson("ORDER_MODIFIER")
+            case ResultModifierType.DISTINCT_MODIFIER       => ToJson.toJson("DISTINCT_MODIFIER")
+            case ResultModifierType.LIMIT_PERCENT_MODIFIER  => ToJson.toJson("LIMIT_PERCENT_MODIFIER")
+        }
     }
 
     pub enum ParsedExpression with Eq, ToString {

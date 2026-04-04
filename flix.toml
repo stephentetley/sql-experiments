@@ -8,5 +8,5 @@ authors     = ["Stephen Tetley <stephen.tetley@gmail.com>"]
 
 [dependencies]
 "github:stephentetley/flix-pretty" = { version = "0.10.2", security = "unrestricted" }
-"github:stephentetley/interop-json" = { version = "0.1.0", security = "unrestricted" }
+"github:stephentetley/interop-json" = { version = "0.2.0", security = "unrestricted" }
 
