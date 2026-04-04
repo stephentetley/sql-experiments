@@ -20,6 +20,7 @@ pub mod DuckAST.Syntax {
     use InteropJson.JsonValue
     use InteropJson.JsonObjectBuilder.BuildJsonObject
     use InteropJson.ToJsonValue
+    use InteropJson.FromJsonValue
 
     use FlixPretty.Doc
     use FlixPretty.PrettyClass.Pretty
@@ -88,6 +89,20 @@ pub mod DuckAST.Syntax {
         }
     }
 
+    instance FromJsonValue[QueryNodeType] {
+        pub def fromJsonValue(x: JsonValue): Option[QueryNodeType] = 
+            match InteropJson.JsonValue.getStringWithDefault("", x) {
+                case "SELECT_NODE"            => Some(QueryNodeType.SELECT_NODE)
+                case "SET_OPERATION_NODE"     => Some(QueryNodeType.SET_OPERATION_NODE)
+                case "BOUND_SUBQUERY_NODE"    => Some(QueryNodeType.BOUND_SUBQUERY_NODE)
+                case "RECURSIVE_CTE_NODE"     => Some(QueryNodeType.RECURSIVE_CTE_NODE)
+                case "CTE_NODE"               => Some(QueryNodeType.CTE_NODE)
+                case "STATEMENT_NODE"         => Some(QueryNodeType.STATEMENT_NODE)
+                case _ => None
+            }
+    }
+
+
     pub enum ResultModifier with Eq, ToString {
 	    case ResultModifier(ResultModifierType, TODO)
     }
@@ -106,6 +121,17 @@ pub mod DuckAST.Syntax {
             case ResultModifierType.DISTINCT_MODIFIER       => ToJsonValue.toJsonValue("DISTINCT_MODIFIER")
             case ResultModifierType.LIMIT_PERCENT_MODIFIER  => ToJsonValue.toJsonValue("LIMIT_PERCENT_MODIFIER")
         }
+    }
+
+    instance FromJsonValue[ResultModifierType] {
+        pub def fromJsonValue(x: JsonValue): Option[ResultModifierType] = 
+            match InteropJson.JsonValue.getStringWithDefault("", x) {
+                case "LIMIT_MODIFIER"           => Some(ResultModifierType.LIMIT_MODIFIER)
+                case "ORDER_MODIFIER"           => Some(ResultModifierType.ORDER_MODIFIER)
+                case "DISTINCT_MODIFIER"        => Some(ResultModifierType.DISTINCT_MODIFIER)
+                case "LIMIT_PERCENT_MODIFIER"   => Some(ResultModifierType.LIMIT_PERCENT_MODIFIER)
+                case _                          => None
+            }
     }
 
     pub enum ParsedExpression with Eq, ToString {

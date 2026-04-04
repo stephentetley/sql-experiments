@@ -24,6 +24,8 @@ pub mod DuckAST.JsonExtra {
     use InteropJson.JsonArrayBuilder.BuildJsonArray
     use InteropJson.JsonObjectBuilder.BuildJsonObject
 
+    // pub def getStringWithDefault(d: String, x: JsonValue): String = 
+    //     InteropJson.JsonValue.getString(x) |> Option.getWithDefault(d)
 
 }
 

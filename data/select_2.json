@@ -1,0 +1,30 @@
+{
+	"error": false,                                                                                                                      
+	"statements": [                                                                                                                      
+     {                                                                                                                                   
+       "node": {                                                                                                                         
+         "type": "SELECT_NODE",                                                                                                          
+         "modifiers": [],                                                                                                                
+         "cte_map": {"map": []},                                                                                                         
+         "select_list": [                                                                                                                
+          {                                                                                                                              
+            "class": "CONSTANT",                                                                                                         
+            "type": "VALUE_CONSTANT",                                                                                                    
+            "alias": "",                                                                                                                 
+            "query_location": 7,                                                                                                         
+            "value": {"type": {"id": "INTEGER", "type_info": null}, "is_null": false, "value": 2}                                        
+          }                                                                                                                              
+         ],                                                                                                                              
+         "from_table": {"type": "EMPTY", "alias": "", "sample": null, "query_location": 18446744073709551615},                           
+         "where_clause": null,                                                                                                           
+         "group_expressions": [],                                                                                                        
+         "group_sets": [],                                                                                                               
+         "aggregate_handling": "STANDARD_HANDLING",                                                                                      
+         "having": null,                                                                                                                 
+         "sample": null,                                                                                                                 
+         "qualify": null                                                                                                                 
+       },                                                                                                                                
+       "named_param_map": []                                                                                                             
+    }                                                                                                                                   
+    ]                                                                                                                                    
+}

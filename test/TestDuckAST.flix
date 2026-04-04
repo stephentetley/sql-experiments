@@ -2,6 +2,7 @@
 mod TestDuckAST {
 
     use Assert.{assertTrue}
+    use InteropJson.ReadJson
     use DuckAST.Syntax.{TODO, QueryNodeType}
 
     @Test
@@ -10,5 +11,12 @@ mod TestDuckAST {
         let json = DuckAST.Syntax.toJsonQueryNodeProperties(x1);
         println("${json}");
         assertTrue(true)
+
+    @Test
+    def test02(): Unit \ {Assert, ReadJson, IO} = 
+        let json = InteropJson.ReadJson.readJson("./data/select_2.json");
+        println("${json}");
+        assertTrue(true)
+
 
 }
