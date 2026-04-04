@@ -18,33 +18,11 @@
 pub mod DuckAST.JsonExtra { 
 
     
-    use InteropJson.JsonValue.JsonValue
-    use InteropJson.JsonValue.JsonArray
-    use InteropJson.JsonValue.JsonObject
+    use InteropJson.JsonValue
+    use InteropJson.JsonArray
+    use InteropJson.JsonObject
     use InteropJson.JsonArrayBuilder.BuildJsonArray
     use InteropJson.JsonObjectBuilder.BuildJsonObject
-
-    import jakarta.json.Json
-    import jakarta.json.{JsonValue => JJsonValue}
-
-
-    // TODO - should have a ToJson instance for JsonArray
-    pub def jsonArrayToJson(x: JsonArray): JsonValue =
-        let JsonArray.JsonArray(x1) = x;
-        let jsonvalue: JJsonValue = checked_cast(x1);
-        JsonValue.JsonValue(jsonvalue)
-
-    // TODO - should have a ToJson instance for JsonObject
-    pub def jsonObjectToJson(x: JsonObject): JsonValue =
-        let JsonObject.JsonObject(x1) = x;
-        let jsonvalue: JJsonValue = checked_cast(x1);
-        JsonValue.JsonValue(jsonvalue)
-
-    pub def evalBuildJsonArrayValue(rc: Region[r], f: Unit -> a \ ef): Result[String, JsonValue] \ (ef - BuildJsonArray + r) =
-        InteropJson.JsonArrayBuilder.evalBuildJsonArray(rc, f) |> Result.map(jsonArrayToJson)
-
-    pub def evalBuildJsonObjectValue(rc: Region[r], f: Unit -> a \ ef): Result[String, JsonValue] \ (ef - BuildJsonObject + r) =
-        InteropJson.JsonObjectBuilder.evalBuildJsonObject(rc, f) |> Result.map(jsonObjectToJson)
 
 
 }

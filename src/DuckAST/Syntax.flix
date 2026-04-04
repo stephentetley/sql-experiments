@@ -17,9 +17,9 @@
 
 pub mod DuckAST.Syntax {
 
-    use InteropJson.JsonValue.JsonValue
+    use InteropJson.JsonValue
     use InteropJson.JsonObjectBuilder.BuildJsonObject
-    use InteropJson.ToJson
+    use InteropJson.ToJsonValue
 
     use FlixPretty.Doc
     use FlixPretty.PrettyClass.Pretty
@@ -31,9 +31,9 @@ pub mod DuckAST.Syntax {
 
     pub enum TODO with Eq, ToString { case TODO }
 
-    instance ToJson[TODO] {
-        pub def toJson(x: TODO): JsonValue = match x {
-            case _          => ToJson.toJson("TODO")
+    instance ToJsonValue[TODO] {
+        pub def toJsonValue(x: TODO): JsonValue = match x {
+            case _          => ToJsonValue.toJsonValue("TODO")
         }
     }
 
@@ -45,23 +45,25 @@ pub mod DuckAST.Syntax {
         case SetOperationNode
     }
 
-    pub def toJsonQueryNode(x: QueryNode): JsonValue = match x {
-        case _          => ToJson.toJson("TODO")
+    instance ToJsonValue[QueryNode] {
+        pub def toJsonValue(x: QueryNode): JsonValue = match x {
+            case _          => ToJsonValue.toJsonValue("TODO")
+        }
     }
 
     // TODO record?
     pub type alias QueryNodeProperties = (QueryNodeType, List[ResultModifier], TODO)
 
-    // Does evalJsonObjectBuilder need to return a Result?
+    
     pub def toJsonQueryNodeProperties(x: QueryNodeProperties): Result[String, JsonValue] = region rc {
         match x {
             case (ty, _, _)          =>
                 run {
-                    BuildJsonObject.addJsonValue(name = "type", ToJson.toJson(ty));
-                    BuildJsonObject.addJsonValue(name = "modifiers", ToJson.toJson("TODO"));
-                    BuildJsonObject.addJsonValue(name = "cte_map", ToJson.toJson("TODO"));
+                    BuildJsonObject.addJsonValue(name = "type", ToJsonValue.toJsonValue(ty));
+                    BuildJsonObject.addJsonValue(name = "modifiers", ToJsonValue.toJsonValue("TODO"));
+                    BuildJsonObject.addJsonValue(name = "cte_map", ToJsonValue.toJsonValue("TODO"));
                     ()
-                } with DuckAST.JsonExtra.evalBuildJsonObjectValue(rc)
+                } with InteropJson.JsonObjectBuilder.evalBuildJsonObjectValue(rc)
                 
         }
     }
@@ -75,14 +77,14 @@ pub mod DuckAST.Syntax {
         case STATEMENT_NODE
     }
 
-    instance ToJson[QueryNodeType] {
-        pub def toJson(x: QueryNodeType): JsonValue = match x {
-            case QueryNodeType.SELECT_NODE          => ToJson.toJson("SELECT_NODE")
-            case QueryNodeType.SET_OPERATION_NODE   => ToJson.toJson("SET_OPERATION_NODE")
-            case QueryNodeType.BOUND_SUBQUERY_NODE  => ToJson.toJson("BOUND_SUBQUERY_NODE")
-            case QueryNodeType.RECURSIVE_CTE_NODE   => ToJson.toJson("RECURSIVE_CTE_NODE")
-            case QueryNodeType.CTE_NODE             => ToJson.toJson("CTE_NODE")
-            case QueryNodeType.STATEMENT_NODE       => ToJson.toJson("STATEMENT_NODE")
+    instance ToJsonValue[QueryNodeType] {
+        pub def toJsonValue(x: QueryNodeType): JsonValue = match x {
+            case QueryNodeType.SELECT_NODE          => ToJsonValue.toJsonValue("SELECT_NODE")
+            case QueryNodeType.SET_OPERATION_NODE   => ToJsonValue.toJsonValue("SET_OPERATION_NODE")
+            case QueryNodeType.BOUND_SUBQUERY_NODE  => ToJsonValue.toJsonValue("BOUND_SUBQUERY_NODE")
+            case QueryNodeType.RECURSIVE_CTE_NODE   => ToJsonValue.toJsonValue("RECURSIVE_CTE_NODE")
+            case QueryNodeType.CTE_NODE             => ToJsonValue.toJsonValue("CTE_NODE")
+            case QueryNodeType.STATEMENT_NODE       => ToJsonValue.toJsonValue("STATEMENT_NODE")
         }
     }
 
@@ -97,12 +99,12 @@ pub mod DuckAST.Syntax {
 	    case LIMIT_PERCENT_MODIFIER
     }
 
-    instance ToJson[ResultModifierType] {
-        pub def toJson(x: ResultModifierType): JsonValue = match x {
-            case ResultModifierType.LIMIT_MODIFIER          => ToJson.toJson("LIMIT_MODIFIER")
-            case ResultModifierType.ORDER_MODIFIER          => ToJson.toJson("ORDER_MODIFIER")
-            case ResultModifierType.DISTINCT_MODIFIER       => ToJson.toJson("DISTINCT_MODIFIER")
-            case ResultModifierType.LIMIT_PERCENT_MODIFIER  => ToJson.toJson("LIMIT_PERCENT_MODIFIER")
+    instance ToJsonValue[ResultModifierType] {
+        pub def toJsonValue(x: ResultModifierType): JsonValue = match x {
+            case ResultModifierType.LIMIT_MODIFIER          => ToJsonValue.toJsonValue("LIMIT_MODIFIER")
+            case ResultModifierType.ORDER_MODIFIER          => ToJsonValue.toJsonValue("ORDER_MODIFIER")
+            case ResultModifierType.DISTINCT_MODIFIER       => ToJsonValue.toJsonValue("DISTINCT_MODIFIER")
+            case ResultModifierType.LIMIT_PERCENT_MODIFIER  => ToJsonValue.toJsonValue("LIMIT_PERCENT_MODIFIER")
         }
     }
 
