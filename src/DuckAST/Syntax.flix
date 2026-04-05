@@ -16,6 +16,7 @@
 
 
 pub mod DuckAST.Syntax {
+    
 
     use InteropJson.JsonValue
     use InteropJson.JsonObjectBuilder.BuildJsonObject
@@ -93,16 +94,26 @@ pub mod DuckAST.Syntax {
         case CTENode
         case RecursiveCTENode
         case StatementNode
-        case SelectNode(QueryNodeProperties, List[ParsedExpression], TableRef, ParsedExpression, TODO, ParsedExpression, ParsedExpression, TODO, TODO)
+        case SelectNode(QueryNodeProperties, List[ParsedExpression], TableRef, ParsedExpression, TODO, ParsedExpression, ParsedExpression, AggregateHandling, TODO)
         case SetOperationNode
     }
 
     instance ToJsonValue[QueryNode] {
-        pub def toJsonValue(x: QueryNode): JsonValue = match x {
-            // case QueryNode.SelectNode(props, exprs, tref)
+        pub def toJsonValue(x: QueryNode): JsonValue = region rc { match x {
+            case QueryNode.SelectNode(_props, _exprs, _fromt, _wherec, _groups, _havingc, _qualifyc, agg, _samplec) => 
+                run {
+                    DuckAST.JsonExtra.addToO(name = "from_table", "TODO");
+                    DuckAST.JsonExtra.addToO(name = "where_clause", "TODO");
+                    DuckAST.JsonExtra.addToO(name = "aggregate_handling", agg);
+                    DuckAST.JsonExtra.addToO(name = "having", "TODO");
+                    DuckAST.JsonExtra.addToO(name = "sample", "TODO");
+                    DuckAST.JsonExtra.addToO(name = "qualify", "TODO");
+                    ()
+                } with DuckAST.JsonExtra.evalToJsonValue(rc)
+                
             case _          => ToJsonValue.toJsonValue("TODO")
         }
-    }
+    }}
 
     instance FromJsonValue[QueryNode] {
         pub def fromJsonValue(_x: JsonValue): Option[QueryNode] = None
@@ -235,6 +246,8 @@ pub mod DuckAST.Syntax {
         case TableFunctionRef         
     }
 
+    pub type alias TableRefPropertiess = (Option[SampleOptions])
+
     pub enum ParseInfo with Eq, ToString {
         case AlterInfo 
         case AttachInfo 
@@ -278,6 +291,75 @@ pub mod DuckAST.Syntax {
         case CreateTypeInfo 
         case CreateViewInfo 
     }
-    
+
+    pub enum AggregateHandling with Eq, ToString, Order {
+	    case STANDARD_HANDLING
+	    case NO_AGGREGATES_ALLOWED
+	    case FORCE_AGGREGATES
+    }
+
+
+    instance ToJsonValue[AggregateHandling] {
+        pub def toJsonValue(x: AggregateHandling): JsonValue = match x {
+            case AggregateHandling.STANDARD_HANDLING        => ToJsonValue.toJsonValue("STANDARD_HANDLING")
+            case AggregateHandling.NO_AGGREGATES_ALLOWED    => ToJsonValue.toJsonValue("NO_AGGREGATES_ALLOWED")
+            case AggregateHandling.FORCE_AGGREGATES         => ToJsonValue.toJsonValue("FORCE_AGGREGATES")
+        }
+    }
+
+    instance FromJsonValue[AggregateHandling] {
+        pub def fromJsonValue(x: JsonValue): Option[AggregateHandling] = 
+            match InteropJson.JsonValue.getStringWithDefault("", x) {
+                case "STANDARD_HANDLING"        => Some(AggregateHandling.STANDARD_HANDLING)
+                case "NO_AGGREGATES_ALLOWED"    => Some(AggregateHandling.NO_AGGREGATES_ALLOWED)
+                case "FORCE_AGGREGATES"         => Some(AggregateHandling.FORCE_AGGREGATES)
+                case _                          => None
+            }
+    }
+
+    pub type alias SampleOptions = (Bool, SampleMethod, Int64)
+
+    pub def toJsonSampleOptions(x: SampleOptions): Result[String, JsonValue] = region rc {
+        match x {
+            case (is_percent, method, seed)          =>
+                run {
+                    DuckAST.JsonExtra.addToO(name = "sample_size", "TODO");
+                    DuckAST.JsonExtra.addToO(name = "is_percentage", is_percent);
+                    DuckAST.JsonExtra.addToO(name = "method", method);
+                    DuckAST.JsonExtra.addToO(name = "seed", seed);
+                    ()
+                } with InteropJson.JsonObjectBuilder.evalBuildJsonObjectValue(rc)
+                
+        }
+    }
+
+    pub enum SampleMethod with Eq, ToString, Order { 
+        case SYSTEM_SAMPLE
+        case BERNOULLI_SAMPLE 
+        case RESERVOIR_SAMPLE 
+        case INVALID
+    }
+
+    instance ToJsonValue[SampleMethod] {
+        pub def toJsonValue(x: SampleMethod): JsonValue = match x {
+            case SampleMethod.SYSTEM_SAMPLE     => ToJsonValue.toJsonValue("SYSTEM_SAMPLE")
+            case SampleMethod.BERNOULLI_SAMPLE  => ToJsonValue.toJsonValue("BERNOULLI_SAMPLE")
+            case SampleMethod.RESERVOIR_SAMPLE  => ToJsonValue.toJsonValue("RESERVOIR_SAMPLE")
+            case SampleMethod.INVALID           => ToJsonValue.toJsonValue("INVALID")
+        }
+    }
+
+    instance FromJsonValue[SampleMethod] {
+        pub def fromJsonValue(x: JsonValue): Option[SampleMethod] = 
+            match InteropJson.JsonValue.getStringWithDefault("", x) {
+                case "SYSTEM_SAMPLE"    => Some(SampleMethod.SYSTEM_SAMPLE)
+                case "BERNOULLI_SAMPLE" => Some(SampleMethod.BERNOULLI_SAMPLE)
+                case "RESERVOIR_SAMPLE" => Some(SampleMethod.RESERVOIR_SAMPLE)
+                case "INVALID"          => Some(SampleMethod.INVALID)
+                case _                  => None
+            }
+    }
+
+
 }
 
