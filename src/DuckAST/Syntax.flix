@@ -30,6 +30,11 @@ pub mod DuckAST.Syntax {
     use FlixPretty.{empty, int32, squotes, encloseSep, text, char, comma, dot,
         intersperse, lparen, rparen, parens, tupled, vcat, nest}
 
+    type alias ParseError = TODO
+
+    pub def parseJson(_x: JsonValue): Result[ParseError, List[TODO]] = Err(TODO.TODO)
+
+
     pub enum TODO with Eq, ToString { case TODO }
 
     instance ToJsonValue[TODO] {
@@ -37,6 +42,52 @@ pub mod DuckAST.Syntax {
             case _          => ToJsonValue.toJsonValue("TODO")
         }
     }
+
+
+    pub enum SQLStatement with Eq, ToString {
+        case AlterStatement 
+        case AttachStatement 
+        case CallStatement 
+        case CopyDatabaseStatement 
+        case CopyStatement 
+        case CreateStatement 
+        case DeleteStatement 
+        case DetachStatement 
+        case DropStatement 
+        case ExecuteStatement 
+        case ExplainStatement 
+        case ExportStatement 
+        case ExtensionStatement 
+        case InsertStatement 
+        case LoadStatement 
+        case LogicalPlanStatement 
+        case MergeIntoStatement 
+        case MultiStatement 
+        case PragmaStatement 
+        case PrepareStatement 
+        case RelationStatement 
+        case SelectStatement(NamedParamMap, QueryNode)
+        case SetStatement(NamedParamMap)
+        case TransactionStatement 
+        case UpdateExtensionsStatement 
+        case UpdateStatement 
+        case VacuumStatement 
+    }
+
+    instance ToJsonValue[SQLStatement] {
+        pub def toJsonValue(x: SQLStatement): JsonValue = region rc {
+            match x {
+                case SQLStatement.SelectStatement(_npm, _node) => run {
+                    DuckAST.JsonExtra.addToO(name = "node", "TODO");
+                    DuckAST.JsonExtra.addToO(name = "named_param_map", "TODO")
+                } with DuckAST.JsonExtra.evalToJsonValue(rc)
+                case _          => ToJsonValue.toJsonValue("TODO")
+            }
+        }
+    }
+
+    // TODO case insensitive in key...
+    pub type alias NamedParamMap = Map[String, TODO]
 
     pub enum QueryNode with Eq, ToString {
         case CTENode
@@ -48,8 +99,13 @@ pub mod DuckAST.Syntax {
 
     instance ToJsonValue[QueryNode] {
         pub def toJsonValue(x: QueryNode): JsonValue = match x {
+            // case QueryNode.SelectNode(props, exprs, tref)
             case _          => ToJsonValue.toJsonValue("TODO")
         }
+    }
+
+    instance FromJsonValue[QueryNode] {
+        pub def fromJsonValue(_x: JsonValue): Option[QueryNode] = None
     }
 
     // TODO record?
@@ -60,9 +116,9 @@ pub mod DuckAST.Syntax {
         match x {
             case (ty, _, _)          =>
                 run {
-                    BuildJsonObject.addJsonValue(name = "type", ToJsonValue.toJsonValue(ty));
-                    BuildJsonObject.addJsonValue(name = "modifiers", ToJsonValue.toJsonValue("TODO"));
-                    BuildJsonObject.addJsonValue(name = "cte_map", ToJsonValue.toJsonValue("TODO"));
+                    DuckAST.JsonExtra.addToO(name = "type", ty);
+                    DuckAST.JsonExtra.addToO(name = "modifiers", "TODO");
+                    DuckAST.JsonExtra.addToO(name = "cte_map", "TODO");
                     ()
                 } with InteropJson.JsonObjectBuilder.evalBuildJsonObjectValue(rc)
                 
@@ -164,35 +220,6 @@ pub mod DuckAST.Syntax {
         case UniqueConstraint 
     }
     
-    pub enum SQLStatement with Eq, ToString {
-        case AlterStatement 
-        case AttachStatement 
-        case CallStatement 
-        case CopyDatabaseStatement 
-        case CopyStatement 
-        case CreateStatement 
-        case DeleteStatement 
-        case DetachStatement 
-        case DropStatement 
-        case ExecuteStatement 
-        case ExplainStatement 
-        case ExportStatement 
-        case ExtensionStatement 
-        case InsertStatement 
-        case LoadStatement 
-        case LogicalPlanStatement 
-        case MergeIntoStatement 
-        case MultiStatement 
-        case PragmaStatement 
-        case PrepareStatement 
-        case RelationStatement 
-        case SelectStatement 
-        case SetStatement 
-        case TransactionStatement 
-        case UpdateExtensionsStatement 
-        case UpdateStatement 
-        case VacuumStatement 
-    }
 
     pub enum TableRef with Eq, ToString {
         case BaseTableRef 
