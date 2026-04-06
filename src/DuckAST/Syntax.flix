@@ -19,7 +19,7 @@ pub mod DuckAST.Syntax {
     
 
     use InteropJson.JsonValue
-    use InteropJson.JsonObjectBuilder.BuildJsonObject
+    use InteropJson.BuildJsonObject.BuildJsonObject
     use InteropJson.ToJsonValue
     use InteropJson.FromJsonValue
 
@@ -31,12 +31,14 @@ pub mod DuckAST.Syntax {
     use FlixPretty.{empty, int32, squotes, encloseSep, text, char, comma, dot,
         intersperse, lparen, rparen, parens, tupled, vcat, nest}
 
+
+    pub enum TODO with Eq, ToString { case TODO }
+
     type alias ParseError = TODO
 
     pub def parseJson(_x: JsonValue): Result[ParseError, List[TODO]] = Err(TODO.TODO)
 
 
-    pub enum TODO with Eq, ToString { case TODO }
 
     instance ToJsonValue[TODO] {
         pub def toJsonValue(x: TODO): JsonValue = match x {
@@ -76,15 +78,14 @@ pub mod DuckAST.Syntax {
     }
 
     instance ToJsonValue[SQLStatement] {
-        pub def toJsonValue(x: SQLStatement): JsonValue = region rc {
+        pub def toJsonValue(x: SQLStatement): JsonValue = 
             match x {
                 case SQLStatement.SelectStatement(_npm, _node) => run {
-                    DuckAST.JsonExtra.addToO(name = "node", "TODO");
-                    DuckAST.JsonExtra.addToO(name = "named_param_map", "TODO")
-                } with DuckAST.JsonExtra.evalToJsonValue(rc)
+                    InteropJson.BuildJsonObject.add(name = "node", "TODO");
+                    InteropJson.BuildJsonObject.add(name = "named_param_map", "TODO")
+                } with DuckAST.JsonExtra.evalToJsonValue
                 case _          => ToJsonValue.toJsonValue("TODO")
             }
-        }
     }
 
     // TODO case insensitive in key...
@@ -99,21 +100,20 @@ pub mod DuckAST.Syntax {
     }
 
     instance ToJsonValue[QueryNode] {
-        pub def toJsonValue(x: QueryNode): JsonValue = region rc { match x {
+        pub def toJsonValue(x: QueryNode): JsonValue = match x {
             case QueryNode.SelectNode(_props, _exprs, _fromt, _wherec, _groups, _havingc, _qualifyc, agg, _samplec) => 
                 run {
-                    DuckAST.JsonExtra.addToO(name = "from_table", "TODO");
-                    DuckAST.JsonExtra.addToO(name = "where_clause", "TODO");
-                    DuckAST.JsonExtra.addToO(name = "aggregate_handling", agg);
-                    DuckAST.JsonExtra.addToO(name = "having", "TODO");
-                    DuckAST.JsonExtra.addToO(name = "sample", "TODO");
-                    DuckAST.JsonExtra.addToO(name = "qualify", "TODO");
+                    InteropJson.BuildJsonObject.add(name = "from_table", "TODO");
+                    InteropJson.BuildJsonObject.add(name = "where_clause", "TODO");
+                    InteropJson.BuildJsonObject.add(name = "aggregate_handling", agg);
+                    InteropJson.BuildJsonObject.add(name = "having", "TODO");
+                    InteropJson.BuildJsonObject.add(name = "sample", "TODO");
+                    InteropJson.BuildJsonObject.add(name = "qualify", "TODO");
                     ()
-                } with DuckAST.JsonExtra.evalToJsonValue(rc)
-                
+                } with DuckAST.JsonExtra.evalToJsonValue
             case _          => ToJsonValue.toJsonValue("TODO")
         }
-    }}
+    }
 
     instance FromJsonValue[QueryNode] {
         pub def fromJsonValue(_x: JsonValue): Option[QueryNode] = None
@@ -123,18 +123,18 @@ pub mod DuckAST.Syntax {
     pub type alias QueryNodeProperties = (QueryNodeType, List[ResultModifier], TODO)
 
     
-    pub def toJsonQueryNodeProperties(x: QueryNodeProperties): Result[String, JsonValue] = region rc {
+    pub def toJsonQueryNodeProperties(x: QueryNodeProperties): JsonValue = 
         match x {
             case (ty, _, _)          =>
                 run {
-                    DuckAST.JsonExtra.addToO(name = "type", ty);
-                    DuckAST.JsonExtra.addToO(name = "modifiers", "TODO");
-                    DuckAST.JsonExtra.addToO(name = "cte_map", "TODO");
+                    InteropJson.BuildJsonObject.add(name = "type", ty);
+                    InteropJson.BuildJsonObject.add(name = "modifiers", "TODO");
+                    InteropJson.BuildJsonObject.add(name = "cte_map", "TODO");
                     ()
-                } with InteropJson.JsonObjectBuilder.evalBuildJsonObjectValue(rc)
+                } with DuckAST.JsonExtra.evalToJsonValue
                 
         }
-    }
+    
 
     pub enum QueryNodeType with Eq, ToString, Order {
         case SELECT_NODE
@@ -319,19 +319,19 @@ pub mod DuckAST.Syntax {
 
     pub type alias SampleOptions = (Bool, SampleMethod, Int64)
 
-    pub def toJsonSampleOptions(x: SampleOptions): Result[String, JsonValue] = region rc {
+    pub def toJsonSampleOptions(x: SampleOptions): JsonValue =
         match x {
             case (is_percent, method, seed)          =>
                 run {
-                    DuckAST.JsonExtra.addToO(name = "sample_size", "TODO");
-                    DuckAST.JsonExtra.addToO(name = "is_percentage", is_percent);
-                    DuckAST.JsonExtra.addToO(name = "method", method);
-                    DuckAST.JsonExtra.addToO(name = "seed", seed);
+                    InteropJson.BuildJsonObject.add(name = "sample_size", "TODO");
+                    InteropJson.BuildJsonObject.add(name = "is_percentage", is_percent);
+                    InteropJson.BuildJsonObject.add(name = "method", method);
+                    InteropJson.BuildJsonObject.add(name = "seed", seed);
                     ()
-                } with InteropJson.JsonObjectBuilder.evalBuildJsonObjectValue(rc)
+                } with DuckAST.JsonExtra.evalToJsonValue
                 
         }
-    }
+    
 
     pub enum SampleMethod with Eq, ToString, Order { 
         case SYSTEM_SAMPLE
