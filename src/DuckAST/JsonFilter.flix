@@ -65,13 +65,30 @@ pub mod DuckAST.JsonFilter {
             List#{x} 
         else List#{}
 
-    // def getChildren(): JsonFilter = x -> 
-    //     if (JsonValue.isArray(x)) 
+    pub def getFromObj(): JsonFilter = x -> 
+        if (JsonValue.isObject(x)) {
+            let o = DuckAST.JsonExtra.getJsonObjectValues(x);
+            Option.getWithDefault(Nil, o)
+        } else List#{}
 
-    //         List#{x} 
-    //     else List#{}
+    pub def getFromArr(): JsonFilter = x -> 
+        if (JsonValue.isArray(x)) {
+            let o = InteropJson.JsonValue.getJsonArrayElements(x);
+            Option.getWithDefault(Nil, o)
+        } else List#{}
 
 
+    // TODO - Object values...
+    pub def getChildren(): JsonFilter = x -> 
+        if (JsonValue.isArray(x)) {
+            let o = InteropJson.JsonValue.getJsonArrayElements(x);
+            Option.getWithDefault(Nil, o)
+        } else if (JsonValue.isObject(x)) {
+            let o = DuckAST.JsonExtra.getJsonObjectValues(x);
+            Option.getWithDefault(Nil, o)
+        } else List#{}
+
+    // Haskell's (>>>)
     pub def sequence(f: JsonFilter, g: JsonFilter): JsonFilter = x ->
         List.flatten(List.map(g, f(x)))
 
@@ -97,6 +114,18 @@ pub mod DuckAST.JsonFilter {
             case Nil => List#{}
             case _   => g(x)
         }
+
+    // Use with care - might not work in a strict language...
+    pub def deep(f: JsonFilter): JsonFilter =
+        orElse(f, sequence(getChildren(), deep(f)))
+
+    // Use with care - might not work in a strict language...
+    pub def deepObj(f: JsonFilter): JsonFilter =
+        orElse(f, sequence(getFromObj(), deep(f)))
+
+    // Use with care - might not work in a strict language...
+    pub def deepArr(f: JsonFilter): JsonFilter =
+        orElse(f, sequence(getFromArr(), deep(f)))
 
 }
 
