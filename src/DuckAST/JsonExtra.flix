@@ -26,12 +26,29 @@ pub mod DuckAST.JsonExtra {
     use InteropJson.JsonObjectBuilder.BuildJsonObject
 
     import jakarta.json.{JsonValue => JJsonValue}
+    import jakarta.json.{JsonArray => JJsonArray}
+    import java.util.{List => JList}
+    import java.util.{Iterator => JIterator}
 
     pub def evalToJsonValue(rc: Region[r], f: Unit -> a \ ef): JsonValue \ (ef - BuildJsonObject + r) =
         match InteropJson.JsonObjectBuilder.evalBuildJsonObjectValue(rc, f) {
             case Err(msg) => jsonObjectSingleton("error", InteropJson.JsonValue.jsonString(msg))
             case Ok(v)    => v
         }
+
+
+    pub def getJsonArrayElements(x: JsonValue): Option[List[JsonValue]] = region rc {
+        if (InteropJson.JsonValue.isArray(x)) {
+            let JsonValue.JsonValue(x1) = x;
+            let proxy: Proxy[JJsonValue] = Proxy.Proxy; 
+            let javaJsonArray: JJsonArray = unchecked_cast(x1 as JJsonArray);
+            let javaIter: JIterator[JJsonValue] = unsafe IO { javaJsonArray.iterator() };
+            let flixIter = Adaptor.fromIterator(rc, proxy, javaIter);
+            let ans = Iterator.toList(flixIter);
+            let ans1 = List.map(JsonValue.JsonValue, ans);
+            Some(ans1)
+        } else None
+    }
 
     pub def jsonArrayFromList(t: List[JsonValue]): JsonValue = region rc {
         let ans = run {
