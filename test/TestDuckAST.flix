@@ -7,6 +7,7 @@ mod TestDuckAST {
     use InteropJson.BuildJsonArray.BuildJsonArray
     use InteropJson.BuildJsonObject.BuildJsonObject
 
+
     @Test
     def test01(): Unit \ {Assert, IO} =
         let x1 = (QueryNodeType.SELECT_NODE, List#{}, TODO.TODO);
@@ -21,7 +22,14 @@ mod TestDuckAST {
         assertTrue(true)
 
     @Test
-    def test03(): Unit \ {Assert, IO} =
+    def test03(): Unit \ {Assert, IO} = 
+        let json = DuckAST.Temp.ast01() |> InteropJson.ToJsonValue.toJsonValue;
+        println("${json}");
+        assertTrue(true)
+
+
+    @Test
+    def testJson01(): Unit \ {Assert, IO} =
         let rarr = run {
             BuildJsonArray.addInt32(12);
             BuildJsonArray.addString("world");
@@ -40,7 +48,7 @@ mod TestDuckAST {
         assertTrue(true)
 
     @Test
-    def test04(): Unit \ {Assert, IO} =
+    def testJson02(): Unit \ {Assert, IO} =
         let robj = run {
             BuildJsonObject.addInt32(name = "one", 12);
             BuildJsonObject.addString(name = "two", "world");

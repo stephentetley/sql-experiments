@@ -22,7 +22,7 @@ pub mod DuckAST.JsonExtra {
     use InteropJson.JsonValue
     use InteropJson.JsonArray
     use InteropJson.JsonObject
-    use InteropJson.BuildJsonArray
+    use InteropJson.BuildJsonArray.BuildJsonArray
     use InteropJson.BuildJsonObject.BuildJsonObject
 
     import jakarta.json.{JsonValue => JJsonValue}
@@ -34,8 +34,18 @@ pub mod DuckAST.JsonExtra {
     import java.util.{Collection => JCollection}
     import java.util.{Map$Entry => JMapEntry}
 
-    pub def evalToJsonValue(f: Unit -> a \ ef): JsonValue \ (ef - BuildJsonObject) =
+    pub def toJsonValueFoldable(t: t[a]): JsonValue \ Foldable.Aef[t] with Foldable[t], ToJsonValue[a] =
+        Foldable.toList(t) |> List.map(ToJsonValue.toJsonValue) |> InteropJson.JsonValue.jsonArrayFromList
+
+
+    pub def evalToJsonValueO(f: Unit -> a \ ef): JsonValue \ (ef - BuildJsonObject) =
         match InteropJson.BuildJsonObject.evalBuildJsonValue(f) {
+            case Ok(v)    => v
+            case Err(msg) => InteropJson.JsonValue.jsonObjectSingleton("error", InteropJson.JsonValue.jsonString(msg))
+        }
+
+    pub def evalToJsonValueA(f: Unit -> a \ ef): JsonValue \ (ef - BuildJsonArray) =
+        match InteropJson.BuildJsonArray.evalBuildJsonValue(f) {
             case Ok(v)    => v
             case Err(msg) => InteropJson.JsonValue.jsonObjectSingleton("error", InteropJson.JsonValue.jsonString(msg))
         }

@@ -34,10 +34,30 @@ pub mod DuckAST.Syntax {
 
     pub enum TODO with Eq, ToString { case TODO }
 
-    type alias ParseError = TODO
+    pub enum JsonResult with Eq, ToString {
+        case JsonOk(List[SQLStatement])
+        case JsonError(String, String, String, String)
+    }
 
-    pub def parseJson(_x: JsonValue): Result[ParseError, List[TODO]] = Err(TODO.TODO)
-
+    instance ToJsonValue[JsonResult] {
+        pub def toJsonValue(x: JsonResult): JsonValue = match x {
+            case JsonResult.JsonOk(statements) => run {
+                    InteropJson.BuildJsonObject.add(name = "error", false);
+                    BuildJsonObject.addJsonValue(name = "statements", DuckAST.JsonExtra.toJsonValueFoldable(statements));
+                    ()
+                } with DuckAST.JsonExtra.evalToJsonValueO
+            case JsonResult.JsonError(etype, msg, subtype, epos) => run {
+                    InteropJson.BuildJsonObject.add(name = "error", true);
+                    InteropJson.BuildJsonObject.add(name = "error_type", etype);
+                    InteropJson.BuildJsonObject.add(name = "error_message", msg);
+                    InteropJson.BuildJsonObject.add(name = "error_subtype", subtype);
+                    InteropJson.BuildJsonObject.add(name = "position", epos);
+                    ()
+                } with DuckAST.JsonExtra.evalToJsonValueO
+        } 
+    }
+    
+    
 
 
     instance ToJsonValue[TODO] {
@@ -80,10 +100,10 @@ pub mod DuckAST.Syntax {
     instance ToJsonValue[SQLStatement] {
         pub def toJsonValue(x: SQLStatement): JsonValue = 
             match x {
-                case SQLStatement.SelectStatement(_npm, _node) => run {
-                    InteropJson.BuildJsonObject.add(name = "node", "TODO");
+                case SQLStatement.SelectStatement(_npm, node) => run {
+                    InteropJson.BuildJsonObject.add(name = "node", node);
                     InteropJson.BuildJsonObject.add(name = "named_param_map", "TODO")
-                } with DuckAST.JsonExtra.evalToJsonValue
+                } with DuckAST.JsonExtra.evalToJsonValueO
                 case _          => ToJsonValue.toJsonValue("TODO")
             }
     }
@@ -95,7 +115,8 @@ pub mod DuckAST.Syntax {
         case CTENode
         case RecursiveCTENode
         case StatementNode
-        case SelectNode(QueryNodeProperties, List[ParsedExpression], TableRef, ParsedExpression, TODO, ParsedExpression, ParsedExpression, AggregateHandling, TODO)
+        // props * select_list * from_table * where_clause? * groups * having * qualify * aggregate_handling * sample 
+        case SelectNode(QueryNodeProperties, List[ParsedExpression], TableRef, Option[ParsedExpression], TODO, Option[ParsedExpression], Option[ParsedExpression], AggregateHandling, Option[TODO])
         case SetOperationNode
     }
 
@@ -110,7 +131,7 @@ pub mod DuckAST.Syntax {
                     InteropJson.BuildJsonObject.add(name = "sample", "TODO");
                     InteropJson.BuildJsonObject.add(name = "qualify", "TODO");
                     ()
-                } with DuckAST.JsonExtra.evalToJsonValue
+                } with DuckAST.JsonExtra.evalToJsonValueO
             case _          => ToJsonValue.toJsonValue("TODO")
         }
     }
@@ -125,13 +146,13 @@ pub mod DuckAST.Syntax {
     
     pub def toJsonQueryNodeProperties(x: QueryNodeProperties): JsonValue = 
         match x {
-            case (ty, _, _)          =>
+            case (ty, _modifiers, _cte_map)          =>
                 run {
                     InteropJson.BuildJsonObject.add(name = "type", ty);
                     InteropJson.BuildJsonObject.add(name = "modifiers", "TODO");
                     InteropJson.BuildJsonObject.add(name = "cte_map", "TODO");
                     ()
-                } with DuckAST.JsonExtra.evalToJsonValue
+                } with DuckAST.JsonExtra.evalToJsonValueO
                 
         }
     
@@ -328,7 +349,7 @@ pub mod DuckAST.Syntax {
                     InteropJson.BuildJsonObject.add(name = "method", method);
                     InteropJson.BuildJsonObject.add(name = "seed", seed);
                     ()
-                } with DuckAST.JsonExtra.evalToJsonValue
+                } with DuckAST.JsonExtra.evalToJsonValueO
                 
         }
     
