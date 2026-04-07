@@ -66,27 +66,28 @@ pub mod DuckAST.JsonFilter {
         else List#{}
 
     pub def getFromObj(): JsonFilter = x -> 
-        if (JsonValue.isObject(x)) {
-            let o = DuckAST.JsonExtra.getJsonObjectValues(x);
-            Option.getWithDefault(Nil, o)
-        } else List#{}
+        match InteropJson.JsonValue.getJsonObject(x) {
+            case Some(o) => InteropJson.JsonObject.getValues(o)
+            case None => List#{}
+        }
+
 
     pub def getFromArr(): JsonFilter = x -> 
-        if (JsonValue.isArray(x)) {
-            let o = InteropJson.JsonValue.getJsonArrayElements(x);
-            Option.getWithDefault(Nil, o)
-        } else List#{}
-
+        match InteropJson.JsonValue.getJsonArray(x) {
+            case Some(a) => InteropJson.JsonArray.toList(a)
+            case None => List#{}
+        }
+        
 
     // TODO - Object values...
     pub def getChildren(): JsonFilter = x -> 
-        if (JsonValue.isArray(x)) {
-            let o = InteropJson.JsonValue.getJsonArrayElements(x);
-            Option.getWithDefault(Nil, o)
-        } else if (JsonValue.isObject(x)) {
-            let o = DuckAST.JsonExtra.getJsonObjectValues(x);
-            Option.getWithDefault(Nil, o)
-        } else List#{}
+        match InteropJson.JsonValue.getJsonArray(x) {
+            case Some(a) => InteropJson.JsonArray.toList(a)
+            case None    => match InteropJson.JsonValue.getJsonObject(x) {
+                            case Some(o) => InteropJson.JsonObject.getValues(o)
+                            case None    => List#{}
+            }
+        }
 
     // Haskell's (>>>)
     pub def sequence(f: JsonFilter, g: JsonFilter): JsonFilter = x ->

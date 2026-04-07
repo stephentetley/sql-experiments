@@ -34,59 +34,46 @@ pub mod DuckAST.JsonExtra {
     import java.util.{Collection => JCollection}
     import java.util.{Map$Entry => JMapEntry}
 
-    pub def toJsonValueFoldable(t: t[a]): JsonValue \ Foldable.Aef[t] with Foldable[t], ToJsonValue[a] =
-        Foldable.toList(t) |> List.map(ToJsonValue.toJsonValue) |> InteropJson.JsonValue.jsonArrayFromList
+    // pub def toJsonValueFoldable(t: t[a]): JsonValue \ Foldable.Aef[t] with Foldable[t], ToJsonValue[a] =
+    //     Foldable.toList(t) |> List.map(ToJsonValue.toJsonValue) |> InteropJson.JsonValue.jsonArrayFromList
 
 
-    pub def evalToJsonValueO(f: Unit -> a \ ef): JsonValue \ (ef - BuildJsonObject) =
-        match InteropJson.BuildJsonObject.evalBuildJsonValue(f) {
-            case Ok(v)    => v
-            case Err(msg) => InteropJson.JsonValue.jsonObjectSingleton("error", InteropJson.JsonValue.jsonString(msg))
-        }
+    // pub def evalToJsonValueO(f: Unit -> a \ ef): JsonValue \ (ef - BuildJsonObject) =
+    //     match InteropJson.BuildJsonObject.evalBuildJsonValue(f) {
+    //         case Ok(v)    => v
+    //         case Err(msg) => InteropJson.JsonValue.jsonObjectSingleton("error", InteropJson.JsonValue.jsonString(msg))
+    //     }
 
-    pub def evalToJsonValueA(f: Unit -> a \ ef): JsonValue \ (ef - BuildJsonArray) =
-        match InteropJson.BuildJsonArray.evalBuildJsonValue(f) {
-            case Ok(v)    => v
-            case Err(msg) => InteropJson.JsonValue.jsonObjectSingleton("error", InteropJson.JsonValue.jsonString(msg))
-        }
+    // pub def evalToJsonValueA(f: Unit -> a \ ef): JsonValue \ (ef - BuildJsonArray) =
+    //     match InteropJson.BuildJsonArray.evalBuildJsonValue(f) {
+    //         case Ok(v)    => v
+    //         case Err(msg) => InteropJson.JsonValue.jsonObjectSingleton("error", InteropJson.JsonValue.jsonString(msg))
+    //     }
 
-    pub def getJsonObjectNames(x: JsonValue): Option[List[String]] = region rc {
-        if (InteropJson.JsonValue.isObject(x)) {
-            let JsonValue.JsonValue(x1) = x;
-            let javaJsonObject: JJsonObject = unchecked_cast(x1 as JJsonObject);
-            let javaKeys: JSet[String] = unsafe IO { javaJsonObject.keySet() };
-            let flixIter = Adaptor.fromSetToIterator(rc, javaKeys);
-            let ans = Iterator.toList(flixIter);
-            Some(ans)
-        } else None
-    }
+    // pub def getJsonObjectNames(x: JsonValue): Option[List[String]] = region rc {
+    //     if (InteropJson.JsonValue.isObject(x)) {
+    //         let JsonValue.JsonValue(x1) = x;
+    //         let javaJsonObject: JJsonObject = unchecked_cast(x1 as JJsonObject);
+    //         let javaKeys: JSet[String] = unsafe IO { javaJsonObject.keySet() };
+    //         let flixIter = Adaptor.fromSetToIterator(rc, javaKeys);
+    //         let ans = Iterator.toList(flixIter);
+    //         Some(ans)
+    //     } else None
+    // }
     
-    pub def getJsonObjectValues(x: JsonValue): Option[List[JsonValue]] = region rc {
-        if (InteropJson.JsonValue.isObject(x)) {
-            let JsonValue.JsonValue(x1) = x;
-            let javaJsonObject: JJsonObject = unchecked_cast(x1 as JJsonObject);
-            let javaValues: JCollection[JJsonValue] = unsafe IO { javaJsonObject.values() };
-            let flixIter = Adaptor.fromCollectionToIterator(rc, javaValues);
-            let ans = Iterator.toList(flixIter);
-            let ans1 = List.map(JsonValue.JsonValue, ans);
-            Some(ans1)
-        } else None
-    }    
+    // pub def getJsonObjectValues(x: JsonValue): Option[List[JsonValue]] = region rc {
+    //     if (InteropJson.JsonValue.isObject(x)) {
+    //         let JsonValue.JsonValue(x1) = x;
+    //         let javaJsonObject: JJsonObject = unchecked_cast(x1 as JJsonObject);
+    //         let javaValues: JCollection[JJsonValue] = unsafe IO { javaJsonObject.values() };
+    //         let flixIter = Adaptor.fromCollectionToIterator(rc, javaValues);
+    //         let ans = Iterator.toList(flixIter);
+    //         let ans1 = List.map(JsonValue.JsonValue, ans);
+    //         Some(ans1)
+    //     } else None
+    // }    
 
-    def mapEntryKey(x: JMapEntry[k, v]): k = x.getKey()
-    def mapEntryValue(x: JMapEntry[k, v]): v = x.getValue()
 
-    pub def getJsonObjectEntries(x: JsonValue): Option[List[(String, JsonValue)]] = region rc {
-        if (InteropJson.JsonValue.isObject(x)) {
-            let JsonValue.JsonValue(x1) = x;
-            let javaJsonObject: JJsonObject = unchecked_cast(x1 as JJsonObject);
-            let javaValues: JSet[JMapEntry[String, JJsonValue]] = unsafe IO { javaJsonObject.entrySet() };
-            let flixIter = Adaptor.fromSetToIterator(rc, javaValues);
-            let ans = Iterator.toList(flixIter);
-            let ans1 = List.map(mx -> (mapEntryKey(mx), JsonValue.JsonValue(mapEntryValue(mx))), ans);
-            Some(ans1)
-        } else None
-    }   
 
 }
 

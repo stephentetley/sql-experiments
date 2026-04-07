@@ -43,9 +43,10 @@ pub mod DuckAST.Syntax {
         pub def toJsonValue(x: JsonResult): JsonValue = match x {
             case JsonResult.JsonOk(statements) => run {
                     InteropJson.BuildJsonObject.add(name = "error", false);
-                    BuildJsonObject.addJsonValue(name = "statements", DuckAST.JsonExtra.toJsonValueFoldable(statements));
+                    InteropJson.BuildJsonObject.add(name = "statements", 
+                                                    List.map(ToJsonValue.toJsonValue, statements) |> ToJsonValue.toJsonValue);
                     ()
-                } with DuckAST.JsonExtra.evalToJsonValueO
+                } with InteropJson.BuildJsonObject.evalToJsonValue(None)
             case JsonResult.JsonError(etype, msg, subtype, epos) => run {
                     InteropJson.BuildJsonObject.add(name = "error", true);
                     InteropJson.BuildJsonObject.add(name = "error_type", etype);
@@ -53,7 +54,7 @@ pub mod DuckAST.Syntax {
                     InteropJson.BuildJsonObject.add(name = "error_subtype", subtype);
                     InteropJson.BuildJsonObject.add(name = "position", epos);
                     ()
-                } with DuckAST.JsonExtra.evalToJsonValueO
+                } with InteropJson.BuildJsonObject.evalToJsonValue(None)
         } 
     }
     
@@ -100,38 +101,49 @@ pub mod DuckAST.Syntax {
     instance ToJsonValue[SQLStatement] {
         pub def toJsonValue(x: SQLStatement): JsonValue = 
             match x {
-                case SQLStatement.SelectStatement(_npm, node) => run {
+                case SQLStatement.SelectStatement(npm, node) => run {
                     InteropJson.BuildJsonObject.add(name = "node", node);
-                    InteropJson.BuildJsonObject.add(name = "named_param_map", "TODO")
-                } with DuckAST.JsonExtra.evalToJsonValueO
+                    InteropJson.BuildJsonObject.add(name = "named_param_map", 
+                                                    namedParamMapToJsonValue(npm))
+                } with InteropJson.BuildJsonObject.evalToJsonValue(None)
                 case _          => ToJsonValue.toJsonValue("TODO")
             }
     }
 
     // TODO case insensitive in key...
-    pub type alias NamedParamMap = Map[String, TODO]
+    pub type alias NamedParamMap = Map[String, Int32]
+
+    // Becomes a JsonArray of key/value objects.
+    // This should be easier to do...
+    pub def namedParamMapToJsonValue(x: NamedParamMap): JsonValue = 
+        InteropJson.JsonObject.fromMap(x) |> InteropJson.JsonObject.toJsonValue
+
 
     pub enum QueryNode with Eq, ToString {
         case CTENode
         case RecursiveCTENode
         case StatementNode
         // props * select_list * from_table * where_clause? * groups * having * qualify * aggregate_handling * sample 
-        case SelectNode(QueryNodeProperties, List[ParsedExpression], TableRef, Option[ParsedExpression], TODO, Option[ParsedExpression], Option[ParsedExpression], AggregateHandling, Option[TODO])
+        case SelectNode(QueryNodeProperties, List[ParsedExpression], TableRef, Option[ParsedExpression], GroupByNode, Option[ParsedExpression], Option[ParsedExpression], AggregateHandling, Option[SampleOptions])
         case SetOperationNode
     }
 
     instance ToJsonValue[QueryNode] {
         pub def toJsonValue(x: QueryNode): JsonValue = match x {
-            case QueryNode.SelectNode(_props, _exprs, _fromt, _wherec, _groups, _havingc, _qualifyc, agg, _samplec) => 
+            case QueryNode.SelectNode(_props, selects, fromt, wherec, _groups, havingc, qualifyc, agg, samplec) => 
                 run {
-                    InteropJson.BuildJsonObject.add(name = "from_table", "TODO");
-                    InteropJson.BuildJsonObject.add(name = "where_clause", "TODO");
+                    // InteropJson.BuildJsonObject.addAll(props);
+                    InteropJson.BuildJsonObject.add(name = "select_list", selects);
+                    InteropJson.BuildJsonObject.add(name = "from_table", fromt);
+                    InteropJson.BuildJsonObject.add(name = "where_clause", wherec);
+                    // InteropJson.BuildJsonObject.add(name = "group_expressions", groups);
+                    // InteropJson.BuildJsonObject.add(name = "group_expressions", group_sets);
                     InteropJson.BuildJsonObject.add(name = "aggregate_handling", agg);
-                    InteropJson.BuildJsonObject.add(name = "having", "TODO");
-                    InteropJson.BuildJsonObject.add(name = "sample", "TODO");
-                    InteropJson.BuildJsonObject.add(name = "qualify", "TODO");
+                    InteropJson.BuildJsonObject.add(name = "having", havingc);
+                    InteropJson.BuildJsonObject.add(name = "sample", samplec);
+                    InteropJson.BuildJsonObject.add(name = "qualify", qualifyc);
                     ()
-                } with DuckAST.JsonExtra.evalToJsonValueO
+                } with InteropJson.BuildJsonObject.evalToJsonValue(None)
             case _          => ToJsonValue.toJsonValue("TODO")
         }
     }
@@ -152,7 +164,7 @@ pub mod DuckAST.Syntax {
                     InteropJson.BuildJsonObject.add(name = "modifiers", "TODO");
                     InteropJson.BuildJsonObject.add(name = "cte_map", "TODO");
                     ()
-                } with DuckAST.JsonExtra.evalToJsonValueO
+                } with InteropJson.BuildJsonObject.evalToJsonValue(None)
                 
         }
     
@@ -245,6 +257,12 @@ pub mod DuckAST.Syntax {
         case WindowExpression
     }  
 
+    instance ToJsonValue[ParsedExpression] {
+        pub def toJsonValue(x: ParsedExpression): JsonValue = match x {
+            case _ => ToJsonValue.toJsonValue("TODO")
+        }
+    }
+
     pub enum Constraint with Eq, ToString {
         case CheckConstraint 
         case ForeignKeyConstraint 
@@ -267,7 +285,23 @@ pub mod DuckAST.Syntax {
         case TableFunctionRef         
     }
 
-    pub type alias TableRefPropertiess = (Option[SampleOptions])
+    instance ToJsonValue[TableRef] {
+        pub def toJsonValue(x: TableRef): JsonValue = match x {
+                case _        => ToJsonValue.toJsonValue("TODO")
+            }
+    }
+
+    pub enum GroupByNode with Eq, ToString {
+        case GroupByNode(List[ParsedExpression], List[GroupingSet])
+    }
+
+    pub type alias GroupingSet = List[ProjectionIndex]
+    
+    pub enum ProjectionIndex with Eq, ToString {
+        case ProjectionIndex
+    }
+
+    pub type alias TableRefProperties = (Option[SampleOptions])
 
     pub enum ParseInfo with Eq, ToString {
         case AlterInfo 
@@ -338,21 +372,24 @@ pub mod DuckAST.Syntax {
             }
     }
 
-    pub type alias SampleOptions = (Bool, SampleMethod, Int64)
+    pub enum SampleOptions with Eq, ToString {
+         case SampleOptions(Bool, SampleMethod, Int64)
+    }
 
-    pub def toJsonSampleOptions(x: SampleOptions): JsonValue =
-        match x {
-            case (is_percent, method, seed)          =>
-                run {
-                    InteropJson.BuildJsonObject.add(name = "sample_size", "TODO");
-                    InteropJson.BuildJsonObject.add(name = "is_percentage", is_percent);
-                    InteropJson.BuildJsonObject.add(name = "method", method);
-                    InteropJson.BuildJsonObject.add(name = "seed", seed);
-                    ()
-                } with DuckAST.JsonExtra.evalToJsonValueO
-                
-        }
-    
+    instance ToJsonValue[SampleOptions] {
+        pub def toJsonValue(x: SampleOptions): JsonValue =
+            match x {
+                case SampleOptions.SampleOptions(is_percent, method, seed)          =>
+                    run {
+                        InteropJson.BuildJsonObject.add(name = "sample_size", "TODO");
+                        InteropJson.BuildJsonObject.add(name = "is_percentage", is_percent);
+                        InteropJson.BuildJsonObject.add(name = "method", method);
+                        InteropJson.BuildJsonObject.add(name = "seed", seed);
+                        ()
+                    } with InteropJson.BuildJsonObject.evalToJsonValue(None)
+                    
+            }
+    }
 
     pub enum SampleMethod with Eq, ToString, Order { 
         case SYSTEM_SAMPLE

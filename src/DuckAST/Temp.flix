@@ -19,7 +19,7 @@ pub mod DuckAST.Temp {
     
     use DuckAST.Syntax.{JsonResult, TODO, 
         SQLStatement, QueryNode, QueryNodeType, TableRef,
-        AggregateHandling}
+        GroupByNode, AggregateHandling}
 
 
     pub def ast01(): JsonResult = 
@@ -31,11 +31,11 @@ pub mod DuckAST.Temp {
                     Nil, 
                     TableRef.EmptyTableRef, 
                     None,      // where
-                    TODO.TODO, 
+                    GroupByNode.GroupByNode(Nil, Nil), 
                     None, 
                     None, 
                     AggregateHandling.STANDARD_HANDLING, 
-                    Some(TODO.TODO)));
+                    None));
         JsonResult.JsonOk(List#{stmt1})
 
     // pub enum Count with Eq, ToString { 
