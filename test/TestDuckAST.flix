@@ -8,12 +8,14 @@ mod TestDuckAST {
     use InteropJson.BuildJsonArray.BuildJsonArray
     use InteropJson.BuildJsonObject.BuildJsonObject
 
-    use DuckAST.Syntax.{TODO, QueryNodeType, QueryNodeProperties}
+    use DuckAST.Syntax.{QueryNodeType, QueryNodeProperties, CommonTableExpressionMap}
     
 
     @Test
     def test01(): Unit \ {Assert, IO} =
-        let x1 = QueryNodeProperties.QueryNodeProperties(QueryNodeType.SELECT_NODE, List#{}, TODO.TODO);
+        let x1 = QueryNodeProperties.QueryNodeProperties(QueryNodeType.SELECT_NODE, 
+                                                            List.empty(), 
+                                                            Map.empty());
         let json = ToJsonValue.toJsonValue(x1);
         println("${json}");
         assertTrue(true)
@@ -21,6 +23,7 @@ mod TestDuckAST {
     @Test
     def test02(): Unit \ {Assert, ReadJson, IO} = 
         let json = InteropJson.ReadJson.readJson("./data/select_2.json");
+        println("----------");
         println("${json}");
         assertTrue(true)
 

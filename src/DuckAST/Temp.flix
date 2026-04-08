@@ -19,7 +19,10 @@ pub mod DuckAST.Temp {
     
     use DuckAST.Syntax.{JsonResult, TODO, 
         SQLStatement, QueryNode, QueryNodeProperties, QueryNodeType, TableRef,
-        GroupByNode, AggregateHandling}
+        GroupByNode, AggregateHandling, CommonTableExpressionMap,
+        ParsedExpression, Value, Type, Val,
+        TableRefProperties, TableReferenceType, 
+        ExternalDependency}
 
 
     pub def ast01(): JsonResult = 
@@ -27,9 +30,26 @@ pub mod DuckAST.Temp {
             SQLStatement.SelectStatement(
                 Map.empty(),
                 QueryNode.SelectNode(
-                    QueryNodeProperties.QueryNodeProperties(QueryNodeType.SELECT_NODE, Nil, TODO.TODO), 
-                    Nil, 
-                    TableRef.EmptyTableRef, 
+                    QueryNodeProperties.QueryNodeProperties(
+                        QueryNodeType.SELECT_NODE, 
+                        Nil,
+                        Map.empty()), 
+                    List#{ParsedExpression.ConstantExpression(
+                                        Value.Value(Type.Type, 
+                                                    false, 
+                                                    Val.VInteger(2), 
+                                                    None)
+                                        ) // Constant
+                                    }, 
+                    TableRef.EmptyTableRef(
+                        TableRefProperties.TableRefProperties(
+                            TableReferenceType.EMPTY_FROM,
+                            "",
+                            None,
+                            Some(18446744073709552000ii),
+                            ExternalDependency.ExternalDependency,
+                            Nil)
+                    ), 
                     None,      // where
                     GroupByNode.GroupByNode(Nil, Nil), 
                     None, 
@@ -38,12 +58,13 @@ pub mod DuckAST.Temp {
                     None));
         JsonResult.JsonOk(List#{stmt1})
 
-    // pub enum Count with Eq, ToString { 
-    //     case Count({count = Int32 })
-    // }
+//    List#{ParsedExpression.ConstantExpression(
+//                             Value.Value(Type.Type, 
+//                                         false, 
+//                                         Val.VInteger(2), 
+//                                         None)
+//                             )
+//                         }, // Constant
 
-    // pub enum Candidate with Eq, ToString {
-    //     case Candidate(String, Count)
-    // } 
 }
 

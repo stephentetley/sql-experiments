@@ -16,7 +16,6 @@
 
 
 pub mod DuckAST.Syntax {
-    use DuckAST.Syntax.getGroupExpressions
 
     use InteropJson.JsonValue
     use InteropJson.JsonObject
@@ -32,6 +31,8 @@ pub mod DuckAST.Syntax {
     use FlixPretty.{empty, int32, squotes, encloseSep, text, char, comma, dot,
         intersperse, lparen, rparen, parens, tupled, vcat, nest}
 
+
+    // idx_t is a large integer but I'm not sure about signedness, make it BigInt 
 
     pub enum TODO with Eq, ToString { case TODO }
 
@@ -68,6 +69,53 @@ pub mod DuckAST.Syntax {
         }
     }
 
+    pub enum Value with Eq, ToString {
+        case Value(Type, Bool, Val, Option[ExtraValueInfo])
+    }
+
+    instance ToJsonValue[Value] {
+        pub def toJsonValue(x: Value): JsonValue = match x {
+            case Value.Value(_,_,_,_) => ToJsonValue.toJsonValue("**Value**")
+        }
+    }
+
+    pub enum Type with Eq, ToString {
+        case Type
+    }
+
+    instance ToJsonValue[Type] {
+        pub def toJsonValue(x: Type): JsonValue = match x {
+            case Type.Type => ToJsonValue.toJsonValue("**Type**")
+        }
+    }
+
+    // value.hpp
+    pub enum Val with Eq, ToString {
+        case VBool(Bool)
+        case VTinyInt(Int32)
+        case VInteger(Int32)
+    }
+
+    instance ToJsonValue[Val] {
+        pub def toJsonValue(x: Val): JsonValue = match x {
+            case Val.VBool(b)       => ToJsonValue.toJsonValue(b)
+            case Val.VTinyInt(i)    => ToJsonValue.toJsonValue(i)
+            case Val.VInteger(i)    => ToJsonValue.toJsonValue(i)
+        }
+    }
+
+    // value.cpp
+    pub enum ExtraValueInfo with Eq, ToString {
+        case StringValueInfo
+        case NestedValueInfo
+    }
+
+    instance ToJsonValue[ExtraValueInfo] {
+        pub def toJsonValue(x: ExtraValueInfo): JsonValue = match x {
+            case ExtraValueInfo.StringValueInfo => ToJsonValue.toJsonValue("**ExtraValueInfo**")
+            case ExtraValueInfo.NestedValueInfo => ToJsonValue.toJsonValue("**ExtraValueInfo**")
+        }
+    }
 
     pub enum SQLStatement with Eq, ToString {
         case AlterStatement 
@@ -140,7 +188,7 @@ pub mod DuckAST.Syntax {
                     InteropJson.BuildJsonObject.add(name = "from_table", fromt);
                     InteropJson.BuildJsonObject.add(name = "where_clause", wherec);
                     InteropJson.BuildJsonObject.add(name = "group_expressions", getGroupExpressions(groups));
-                    InteropJson.BuildJsonObject.add(name = "group_expressions", getGroupingSets(groups));
+                    InteropJson.BuildJsonObject.add(name = "group_sets", getGroupingSets(groups));
                     InteropJson.BuildJsonObject.add(name = "aggregate_handling", agg);
                     InteropJson.BuildJsonObject.add(name = "having", havingc);
                     InteropJson.BuildJsonObject.add(name = "sample", samplec);
@@ -157,7 +205,7 @@ pub mod DuckAST.Syntax {
 
 
     pub enum QueryNodeProperties with Eq, ToString {
-        case QueryNodeProperties(QueryNodeType, List[ResultModifier], TODO)
+        case QueryNodeProperties(QueryNodeType, List[ResultModifier], CommonTableExpressionMap)
     }
 
     instance ToJsonValue[QueryNodeProperties] {
@@ -167,7 +215,8 @@ pub mod DuckAST.Syntax {
                     run {
                         InteropJson.BuildJsonObject.add(name = "type", ty);
                         InteropJson.BuildJsonObject.add(name = "modifiers", modifiers);
-                        InteropJson.BuildJsonObject.add(name = "cte_map", cte_map);
+                        let cte_map1 = commonTableExpressionMapToJsonValue(cte_map);
+                        InteropJson.BuildJsonObject.add(name = "cte_map", cte_map1);
                         ()
                     } with InteropJson.BuildJsonObject.evalToJsonValue(None)
                     
@@ -252,6 +301,49 @@ pub mod DuckAST.Syntax {
             }
     }
 
+    // query_node.hpp
+    pub type alias CommonTableExpressionMap = Map[String, CommonTableExpressionInfo]
+
+
+    // Becomes a JsonArray of key/value objects.
+    pub def commonTableExpressionMapToJsonValue(_x: CommonTableExpressionMap): JsonValue = 
+        InteropJson.JsonObject.singleton("map", "**commonTableExpressionMapToJsonValue**")
+            |> ToJsonValue.toJsonValue
+
+
+
+
+    // common_table_expression_info.hpp
+    pub enum CommonTableExpressionInfo with Eq, ToString {
+        case CommonTableExpressionInfo(List[String], List[ParsedExpression], List[ParsedExpression], SQLStatement, CTEMaterialize)
+    }
+
+    instance ToJsonValue[CommonTableExpressionInfo] {
+        pub def toJsonValue(x: CommonTableExpressionInfo): JsonValue = match x {
+            case CommonTableExpressionInfo.CommonTableExpressionInfo(_,_,_,_,_) => 
+                    ToJsonValue.toJsonValue("**CommonTableExpressionInfo**")
+            
+        }
+    }
+
+
+
+    // cte_materialize.hpp
+    pub enum CTEMaterialize with Eq, ToString {
+	    case CTE_MATERIALIZE_DEFAULT
+	    case CTE_MATERIALIZE_ALWAYS
+	    case CTE_MATERIALIZE_NEVER
+    }
+
+    instance ToJsonValue[CTEMaterialize] {
+        pub def toJsonValue(x: CTEMaterialize): JsonValue = match x {
+            case CTEMaterialize.CTE_MATERIALIZE_DEFAULT => ToJsonValue.toJsonValue("CTE_MATERIALIZE_DEFAULT")
+            case CTEMaterialize.CTE_MATERIALIZE_ALWAYS  => ToJsonValue.toJsonValue("CTE_MATERIALIZE_ALWAYS")
+            case CTEMaterialize.CTE_MATERIALIZE_NEVER   => ToJsonValue.toJsonValue("CTE_MATERIALIZE_NEVER")
+        }
+    }
+
+
     pub enum OrderByNode with Eq, ToString {
         case OrderByNode
     }
@@ -271,7 +363,7 @@ pub mod DuckAST.Syntax {
         case ColumnRefExpression 
         case ComparisonExpression 
         case ConjunctionExpression 
-        case ConstantExpression 
+        case ConstantExpression(Value)
         case DefaultExpression 
         case FunctionExpression 
         case LambdaExpression 
@@ -304,7 +396,7 @@ pub mod DuckAST.Syntax {
         case BoundRefWrapper 
         case ColumnDataRef 
         case DelimGetRef 
-        case EmptyTableRef 
+        case EmptyTableRef(TableRefProperties) 
         case ExpressionListRef 
         case JoinRef 
         case PivotRef 
@@ -315,13 +407,79 @@ pub mod DuckAST.Syntax {
 
     instance ToJsonValue[TableRef] {
         pub def toJsonValue(x: TableRef): JsonValue = match x {
+                case TableRef.EmptyTableRef(props) => ToJsonValue.toJsonValue(props)
                 case _        => ToJsonValue.toJsonValue("**TableRef**")
             }
+    }
+
+    // tableref.hpp
+    pub enum TableRefProperties with Eq, ToString {
+        case TableRefProperties(TableReferenceType, String, Option[SampleOptions], Option[BigInt], ExternalDependency, List[String])
+    }
+
+    instance ToJsonValue[TableRefProperties] {
+        pub def toJsonValue(x: TableRefProperties): JsonValue = match x {
+            case TableRefProperties.TableRefProperties(_,_, _, _, _, _) => 
+                ToJsonValue.toJsonValue("**TableRefProperties**")
+        }
+    }
+
+
+    // tableref_type.hpp
+    pub enum TableReferenceType with Eq, ToString {
+	    case INVALID
+	    case BASE_TABLE
+	    case SUBQUERY
+	    case JOIN
+	    case TABLE_FUNCTION
+        case EXPRESSION_LIST
+	    case CTE
+	    case EMPTY_FROM
+	    case PIVOT
+	    case SHOW_REF
+	    case COLUMN_DATA
+	    case DELIM_GET
+	    case BOUND_TABLE_REF
+    }
+
+    instance ToJsonValue[TableReferenceType] {
+        pub def toJsonValue(x: TableReferenceType): JsonValue = match x {
+            case TableReferenceType.INVALID         => ToJsonValue.toJsonValue("INVALID")
+            case TableReferenceType.BASE_TABLE      => ToJsonValue.toJsonValue("BASE_TABLE")
+            case TableReferenceType.SUBQUERY        => ToJsonValue.toJsonValue("SUBQUERY")
+            case TableReferenceType.JOIN            => ToJsonValue.toJsonValue("JOIN")
+            case TableReferenceType.TABLE_FUNCTION  => ToJsonValue.toJsonValue("TABLE_FUNCTION")
+            case TableReferenceType.EXPRESSION_LIST => ToJsonValue.toJsonValue("EXPRESSION_LIST")
+            case TableReferenceType.CTE             => ToJsonValue.toJsonValue("CTE")
+            case TableReferenceType.EMPTY_FROM      => ToJsonValue.toJsonValue("EMPTY_FROM")
+            case TableReferenceType.PIVOT           => ToJsonValue.toJsonValue("PIVOT")
+            case TableReferenceType.SHOW_REF        => ToJsonValue.toJsonValue("SHOW_REF")
+            case TableReferenceType.COLUMN_DATA     => ToJsonValue.toJsonValue("COLUMN_DATA")
+            case TableReferenceType.DELIM_GET       => ToJsonValue.toJsonValue("DELIM_GET")
+            case TableReferenceType.BOUND_TABLE_REF => ToJsonValue.toJsonValue("BOUND_TABLE_REF")
+        }
+    }
+
+    pub enum ExternalDependency with Eq, ToString {
+        case ExternalDependency
+    }
+
+    instance ToJsonValue[ExternalDependency] {
+        pub def toJsonValue(x: ExternalDependency): JsonValue = match x {
+            case ExternalDependency.ExternalDependency=> 
+                ToJsonValue.toJsonValue("**ExternalDependency**")
+        }
     }
 
     pub enum GroupByNode with Eq, ToString {
         case GroupByNode(List[ParsedExpression], List[GroupingSet])
     }
+    
+    // instance ToJsonValue[GroupByNode] {
+    //     pub def toJsonValue(x: ProjectionIndex): JsonValue = match x {
+    //         InteropJson.JsonValue.jsonString("**ProjectionIndex**")
+    //     }
+    // }
 
     pub def getGroupExpressions(x: GroupByNode): List[ParsedExpression] = match x {
         case GroupByNode.GroupByNode(xs, _) => xs
@@ -342,7 +500,6 @@ pub mod DuckAST.Syntax {
     }
     
 
-    pub type alias TableRefProperties = (Option[SampleOptions])
 
     pub enum ParseInfo with Eq, ToString {
         case AlterInfo 
