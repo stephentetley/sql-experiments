@@ -34,46 +34,37 @@ pub mod DuckAST.JsonExtra {
     import java.util.{Collection => JCollection}
     import java.util.{Map$Entry => JMapEntry}
 
-    // pub def toJsonValueFoldable(t: t[a]): JsonValue \ Foldable.Aef[t] with Foldable[t], ToJsonValue[a] =
-    //     Foldable.toList(t) |> List.map(ToJsonValue.toJsonValue) |> InteropJson.JsonValue.jsonArrayFromList
+
+    pub def addAll(value: t): Unit \ BuildJsonObject with ToJsonValue[t] = 
+        match InteropJson.JsonValue.getJsonObject(ToJsonValue.toJsonValue(value)) {
+            case Some(o) => BuildJsonObject.addAll(o)
+            case None => ()
+        }
+        
+
+    // On failure generates a Json object with a single field "error" : msg
+    pub def evalToJsonObject(o: Option[JsonObject], f: Unit -> a \ ef): JsonObject \ (ef - BuildJsonObject) =
+        match InteropJson.BuildJsonObject.evalBuildJsonObject(o, f) {
+            case Ok(v)    => v
+            case Err(msg) => InteropJson.JsonObject.singleton("error", msg)
+        }
 
 
-    // pub def evalToJsonValueO(f: Unit -> a \ ef): JsonValue \ (ef - BuildJsonObject) =
-    //     match InteropJson.BuildJsonObject.evalBuildJsonValue(f) {
-    //         case Ok(v)    => v
-    //         case Err(msg) => InteropJson.JsonValue.jsonObjectSingleton("error", InteropJson.JsonValue.jsonString(msg))
-    //     }
-
-    // pub def evalToJsonValueA(f: Unit -> a \ ef): JsonValue \ (ef - BuildJsonArray) =
-    //     match InteropJson.BuildJsonArray.evalBuildJsonValue(f) {
-    //         case Ok(v)    => v
-    //         case Err(msg) => InteropJson.JsonValue.jsonObjectSingleton("error", InteropJson.JsonValue.jsonString(msg))
-    //     }
-
-    // pub def getJsonObjectNames(x: JsonValue): Option[List[String]] = region rc {
-    //     if (InteropJson.JsonValue.isObject(x)) {
-    //         let JsonValue.JsonValue(x1) = x;
-    //         let javaJsonObject: JJsonObject = unchecked_cast(x1 as JJsonObject);
-    //         let javaKeys: JSet[String] = unsafe IO { javaJsonObject.keySet() };
-    //         let flixIter = Adaptor.fromSetToIterator(rc, javaKeys);
-    //         let ans = Iterator.toList(flixIter);
-    //         Some(ans)
-    //     } else None
+    // pub trait ToJsonObject[t] {
+    //     pub def toJsonObject(x: t): JsonObject
     // }
-    
-    // pub def getJsonObjectValues(x: JsonValue): Option[List[JsonValue]] = region rc {
-    //     if (InteropJson.JsonValue.isObject(x)) {
-    //         let JsonValue.JsonValue(x1) = x;
-    //         let javaJsonObject: JJsonObject = unchecked_cast(x1 as JJsonObject);
-    //         let javaValues: JCollection[JJsonValue] = unsafe IO { javaJsonObject.values() };
-    //         let flixIter = Adaptor.fromCollectionToIterator(rc, javaValues);
-    //         let ans = Iterator.toList(flixIter);
-    //         let ans1 = List.map(JsonValue.JsonValue, ans);
-    //         Some(ans1)
-    //     } else None
-    // }    
 
+    // pub trait ToJsonArray[t] {
+    //     pub def toJsonArray(x: t): JsonArray
+    // }
 
+    // instance ToJsonObject[JsonObject] {
+    //     pub def toJsonObject(x: JsonObject): JsonObject = x
+    // }
+
+    // instance ToJsonArray[JsonArray] {
+    //     pub def toJsonArray(x: JsonArray): JsonArray = x
+    // }
 
 }
 

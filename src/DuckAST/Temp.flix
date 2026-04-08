@@ -18,7 +18,7 @@
 pub mod DuckAST.Temp {
     
     use DuckAST.Syntax.{JsonResult, TODO, 
-        SQLStatement, QueryNode, QueryNodeType, TableRef,
+        SQLStatement, QueryNode, QueryNodeProperties, QueryNodeType, TableRef,
         GroupByNode, AggregateHandling}
 
 
@@ -27,7 +27,7 @@ pub mod DuckAST.Temp {
             SQLStatement.SelectStatement(
                 Map.empty(),
                 QueryNode.SelectNode(
-                    (QueryNodeType.SELECT_NODE, Nil, TODO.TODO), 
+                    QueryNodeProperties.QueryNodeProperties(QueryNodeType.SELECT_NODE, Nil, TODO.TODO), 
                     Nil, 
                     TableRef.EmptyTableRef, 
                     None,      // where

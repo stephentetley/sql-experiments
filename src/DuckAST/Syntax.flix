@@ -16,9 +16,10 @@
 
 
 pub mod DuckAST.Syntax {
-    
+    use DuckAST.Syntax.getGroupExpressions
 
     use InteropJson.JsonValue
+    use InteropJson.JsonObject
     use InteropJson.BuildJsonObject.BuildJsonObject
     use InteropJson.ToJsonValue
     use InteropJson.FromJsonValue
@@ -63,7 +64,7 @@ pub mod DuckAST.Syntax {
 
     instance ToJsonValue[TODO] {
         pub def toJsonValue(x: TODO): JsonValue = match x {
-            case _          => ToJsonValue.toJsonValue("TODO")
+            case TODO.TODO => ToJsonValue.toJsonValue("TODO.TODO")
         }
     }
 
@@ -106,7 +107,7 @@ pub mod DuckAST.Syntax {
                     InteropJson.BuildJsonObject.add(name = "named_param_map", 
                                                     namedParamMapToJsonValue(npm))
                 } with InteropJson.BuildJsonObject.evalToJsonValue(None)
-                case _          => ToJsonValue.toJsonValue("TODO")
+                case _          => ToJsonValue.toJsonValue("**SQLStatement**")
             }
     }
 
@@ -114,9 +115,11 @@ pub mod DuckAST.Syntax {
     pub type alias NamedParamMap = Map[String, Int32]
 
     // Becomes a JsonArray of key/value objects.
-    // This should be easier to do...
     pub def namedParamMapToJsonValue(x: NamedParamMap): JsonValue = 
-        InteropJson.JsonObject.fromMap(x) |> InteropJson.JsonObject.toJsonValue
+        Map.toList(x) 
+            |> List.map(match(k, v) -> InteropJson.JsonObject.singleton(k, v))
+            |> InteropJson.JsonArray.fromList
+            |> InteropJson.JsonArray.toJsonValue
 
 
     pub enum QueryNode with Eq, ToString {
@@ -130,21 +133,21 @@ pub mod DuckAST.Syntax {
 
     instance ToJsonValue[QueryNode] {
         pub def toJsonValue(x: QueryNode): JsonValue = match x {
-            case QueryNode.SelectNode(_props, selects, fromt, wherec, _groups, havingc, qualifyc, agg, samplec) => 
+            case QueryNode.SelectNode(props, selects, fromt, wherec, groups, havingc, qualifyc, agg, samplec) => 
                 run {
-                    // InteropJson.BuildJsonObject.addAll(props);
+                    DuckAST.JsonExtra.addAll(props);
                     InteropJson.BuildJsonObject.add(name = "select_list", selects);
                     InteropJson.BuildJsonObject.add(name = "from_table", fromt);
                     InteropJson.BuildJsonObject.add(name = "where_clause", wherec);
-                    // InteropJson.BuildJsonObject.add(name = "group_expressions", groups);
-                    // InteropJson.BuildJsonObject.add(name = "group_expressions", group_sets);
+                    InteropJson.BuildJsonObject.add(name = "group_expressions", getGroupExpressions(groups));
+                    InteropJson.BuildJsonObject.add(name = "group_expressions", getGroupingSets(groups));
                     InteropJson.BuildJsonObject.add(name = "aggregate_handling", agg);
                     InteropJson.BuildJsonObject.add(name = "having", havingc);
                     InteropJson.BuildJsonObject.add(name = "sample", samplec);
                     InteropJson.BuildJsonObject.add(name = "qualify", qualifyc);
                     ()
                 } with InteropJson.BuildJsonObject.evalToJsonValue(None)
-            case _          => ToJsonValue.toJsonValue("TODO")
+            case _          => ToJsonValue.toJsonValue("**QueryNode**")
         }
     }
 
@@ -152,22 +155,24 @@ pub mod DuckAST.Syntax {
         pub def fromJsonValue(_x: JsonValue): Option[QueryNode] = None
     }
 
-    // TODO record?
-    pub type alias QueryNodeProperties = (QueryNodeType, List[ResultModifier], TODO)
 
-    
-    pub def toJsonQueryNodeProperties(x: QueryNodeProperties): JsonValue = 
-        match x {
-            case (ty, _modifiers, _cte_map)          =>
-                run {
-                    InteropJson.BuildJsonObject.add(name = "type", ty);
-                    InteropJson.BuildJsonObject.add(name = "modifiers", "TODO");
-                    InteropJson.BuildJsonObject.add(name = "cte_map", "TODO");
-                    ()
-                } with InteropJson.BuildJsonObject.evalToJsonValue(None)
-                
-        }
-    
+    pub enum QueryNodeProperties with Eq, ToString {
+        case QueryNodeProperties(QueryNodeType, List[ResultModifier], TODO)
+    }
+
+    instance ToJsonValue[QueryNodeProperties] {
+        pub def toJsonValue(x: QueryNodeProperties): JsonValue = 
+            match x {
+                case QueryNodeProperties.QueryNodeProperties(ty, modifiers, cte_map)   =>
+                    run {
+                        InteropJson.BuildJsonObject.add(name = "type", ty);
+                        InteropJson.BuildJsonObject.add(name = "modifiers", modifiers);
+                        InteropJson.BuildJsonObject.add(name = "cte_map", cte_map);
+                        ()
+                    } with InteropJson.BuildJsonObject.evalToJsonValue(None)
+                    
+            }
+    }
 
     pub enum QueryNodeType with Eq, ToString, Order {
         case SELECT_NODE
@@ -204,8 +209,21 @@ pub mod DuckAST.Syntax {
 
 
     pub enum ResultModifier with Eq, ToString {
-	    case ResultModifier(ResultModifierType, TODO)
+	    case LimitModifier(Option[ParsedExpression], Option[ParsedExpression])
+        case OrderModifier(List[OrderByNode])
+        case DistinctModifier(List[ParsedExpression])
+        case LimitPercentModifier(Option[ParsedExpression], Option[ParsedExpression])
     }
+
+    instance ToJsonValue[ResultModifier] {
+        pub def toJsonValue(x: ResultModifier): JsonValue = match x {
+            case ResultModifier.LimitModifier(_, _)     => ToJsonValue.toJsonValue("**ResultModifier**")
+            case ResultModifier.OrderModifier(_)        => ToJsonValue.toJsonValue("**ResultModifier**")
+            case ResultModifier.DistinctModifier(_)        => ToJsonValue.toJsonValue("**ResultModifier**")
+            case ResultModifier.LimitPercentModifier(_, _)     => ToJsonValue.toJsonValue("**ResultModifier**")
+        }
+    }
+
 
     pub enum ResultModifierType with Eq, ToString, Order {
 	    case LIMIT_MODIFIER
@@ -234,6 +252,16 @@ pub mod DuckAST.Syntax {
             }
     }
 
+    pub enum OrderByNode with Eq, ToString {
+        case OrderByNode
+    }
+
+    instance ToJsonValue[OrderByNode] {
+        pub def toJsonValue(x: OrderByNode): JsonValue = match x {
+            case OrderByNode.OrderByNode          => ToJsonValue.toJsonValue("**OrderByNode**")
+        }
+    }
+
     pub enum ParsedExpression with Eq, ToString {
         case BetweenExpression 
         case BoundExpression 
@@ -259,7 +287,7 @@ pub mod DuckAST.Syntax {
 
     instance ToJsonValue[ParsedExpression] {
         pub def toJsonValue(x: ParsedExpression): JsonValue = match x {
-            case _ => ToJsonValue.toJsonValue("TODO")
+            case _ => ToJsonValue.toJsonValue("**ParsedExpression**")
         }
     }
 
@@ -287,7 +315,7 @@ pub mod DuckAST.Syntax {
 
     instance ToJsonValue[TableRef] {
         pub def toJsonValue(x: TableRef): JsonValue = match x {
-                case _        => ToJsonValue.toJsonValue("TODO")
+                case _        => ToJsonValue.toJsonValue("**TableRef**")
             }
     }
 
@@ -295,11 +323,24 @@ pub mod DuckAST.Syntax {
         case GroupByNode(List[ParsedExpression], List[GroupingSet])
     }
 
+    pub def getGroupExpressions(x: GroupByNode): List[ParsedExpression] = match x {
+        case GroupByNode.GroupByNode(xs, _) => xs
+    }
+
+    pub def getGroupingSets(x: GroupByNode): List[GroupingSet] = match x {
+        case GroupByNode.GroupByNode(_, ys) => ys
+    }
+
     pub type alias GroupingSet = List[ProjectionIndex]
     
     pub enum ProjectionIndex with Eq, ToString {
         case ProjectionIndex
     }
+
+    instance ToJsonValue[ProjectionIndex] {
+        pub def toJsonValue(_: ProjectionIndex): JsonValue = InteropJson.JsonValue.jsonString("**ProjectionIndex**")
+    }
+    
 
     pub type alias TableRefProperties = (Option[SampleOptions])
 

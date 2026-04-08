@@ -2,16 +2,19 @@
 mod TestDuckAST {
 
     use Assert.{assertTrue}
+
     use InteropJson.ReadJson
-    use DuckAST.Syntax.{TODO, QueryNodeType}
+    use InteropJson.ToJsonValue
     use InteropJson.BuildJsonArray.BuildJsonArray
     use InteropJson.BuildJsonObject.BuildJsonObject
 
+    use DuckAST.Syntax.{TODO, QueryNodeType, QueryNodeProperties}
+    
 
     @Test
     def test01(): Unit \ {Assert, IO} =
-        let x1 = (QueryNodeType.SELECT_NODE, List#{}, TODO.TODO);
-        let json = DuckAST.Syntax.toJsonQueryNodeProperties(x1);
+        let x1 = QueryNodeProperties.QueryNodeProperties(QueryNodeType.SELECT_NODE, List#{}, TODO.TODO);
+        let json = ToJsonValue.toJsonValue(x1);
         println("${json}");
         assertTrue(true)
 
@@ -24,6 +27,7 @@ mod TestDuckAST {
     @Test
     def test03(): Unit \ {Assert, IO} = 
         let json = DuckAST.Temp.ast01() |> InteropJson.ToJsonValue.toJsonValue;
+        println("----------");
         println("${json}");
         assertTrue(true)
 
